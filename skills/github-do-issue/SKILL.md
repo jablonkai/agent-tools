@@ -1,6 +1,6 @@
 ---
 name: github-do-issue
-description: "This skill should be used when the user assigns a GitHub issue to be worked on. Fetches issue details, understands requirements, implements the solution, and runs verification — but does NOT commit, push, or create a PR automatically. The user decides when to commit."
+description: "Fetch a GitHub issue, understand its requirements, plan and implement the solution, then run verification — without committing, pushing, or creating a PR. Use when someone says 'work on issue #N', 'do #N', 'implement #N', 'fix issue #N', 'dolgozz a #N-es issue-n', or pastes a GitHub issue URL and wants it implemented. The user always reviews the result and decides when to commit. Pairs naturally with github-commit-pr for the commit step afterward."
 category: development-workflow
 risk: low
 tags:
@@ -97,7 +97,8 @@ If the issue is unclear or missing critical details, ask the user for clarificat
 Before writing any code:
 
 1. Identify which files need to be created or modified
-2. Consider the project's existing patterns and conventions — read project documentation (README.md, CLAUDE.md, AGENTS.md, CODEX.md, CONTRIBUTING.md, or similar), check existing code for patterns, review configuration files
+2. Check for existing tests that cover the affected code — new changes should maintain or extend test coverage, not break it
+3. Consider the project's existing patterns and conventions — read project documentation (README.md, CLAUDE.md, AGENTS.md, CODEX.md, CONTRIBUTING.md, or similar), check existing code for patterns, review configuration files
 3. Present a brief implementation plan to the user:
 
 ```
@@ -130,7 +131,13 @@ After implementation, run the project's verification checks. Detect which tools 
 - **Go:** `go build ./...`, `go test ./...`
 - **Android (Kotlin/Java):** `./gradlew build`, `./gradlew test`, `./gradlew lint`
 - **Flutter/Dart:** `flutter analyze`, `flutter test`
+- **Swift:** `swift build`, `swift test`
+- **Ruby:** `bundle exec rspec`, `bundle exec rubocop`
+- **.NET (C#/F#):** `dotnet build`, `dotnet test`
+- **Elixir:** `mix compile --warnings-as-errors`, `mix test`, `mix credo`
 - **Other:** check `package.json` scripts, `Makefile`, CI config, or `build.gradle` for available checks
+
+Also check for CI configuration (`.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`, `.circleci/`) to understand which checks the project runs in CI — these are the verification steps the PR will need to pass.
 
 If no verification commands are found, inform the user and suggest they run their own checks manually.
 
@@ -154,7 +161,7 @@ Verification:
 Ready for review.
 ```
 
-**STOP HERE.** Do not commit, push, create a branch, or create a PR. The user decides what to do next.
+**STOP HERE.** Do not commit, push, create a branch, or create a PR. The user decides what to do next. If they want to commit and open a PR, the `github-commit-pr` skill handles that workflow end-to-end.
 
 ## Error handling
 
@@ -172,10 +179,12 @@ Ready for review.
 
 ## Critical constraints
 
-- **NEVER commit** after completing the implementation — the user must review first
-- **NEVER push** to any remote
-- **NEVER create a PR** automatically
-- **NEVER create a branch** — stay on the current branch; branch creation is the user's responsibility
-- Do not modify files outside the scope of the issue
-- Ask for clarification rather than guessing when requirements are ambiguous
-- If implementation reveals unexpected complexity, pause and inform the user rather than expanding scope
+These boundaries exist because this skill handles only the implementation phase — the user controls the git workflow:
+
+- Do not commit after completing the implementation — the user needs to review the changes first and may want to adjust them
+- Do not push to any remote — pushing is a separate decision that belongs to the user
+- Do not create a PR automatically — PR creation involves title, description, and reviewer choices the user should make
+- Do not create a branch — stay on the current branch; the user may have their own branching strategy or want to use `github-commit-pr` for this
+- Do not modify files outside the scope of the issue — scope creep creates review burden and makes it harder to revert changes
+- Ask for clarification rather than guessing when requirements are ambiguous — a wrong guess wastes more time than a quick question
+- If implementation reveals unexpected complexity, pause and inform the user rather than expanding scope — they may want to split the work into multiple issues

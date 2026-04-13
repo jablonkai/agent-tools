@@ -1,6 +1,6 @@
 ---
 name: github-commit-pr
-description: "This skill should be used when the user wants to commit changes, create a branch, push, and open a GitHub PR — or push additional commits to an existing PR. Handles issue linking with auto-close keywords, conventional commit messages, and structured PR descriptions."
+description: "Commit changes, create a feature branch, and open a GitHub pull request — or push new commits to an existing PR. Use whenever someone says 'commit and push', 'create a PR', 'open a pull request', 'send for review', 'push my changes', or is done with their work and ready to submit it. Also triggers for 'commitold be', 'nyiss PR-t', or any variation of wanting to get changes into a pull request. Handles conventional commit messages, issue linking with auto-close keywords (Closes #N), sensitive file detection, and PR template integration."
 category: git
 risk: low
 tags:
@@ -56,10 +56,16 @@ git branch --show-current
 Determine the repository's default branch:
 
 ```bash
+git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||'
+```
+
+If that fails (e.g., origin HEAD not set), fall back to the network call:
+
+```bash
 git remote show origin | grep 'HEAD branch' | sed 's/.*: //'
 ```
 
-If `$ARGUMENTS` contains a positional argument, use it as the base branch instead. Fall back to `main` if detection fails.
+If `$ARGUMENTS` contains a positional argument, use it as the base branch instead. Fall back to `main` if both detection methods fail.
 
 ## Flow detection
 
@@ -98,7 +104,8 @@ Before staging, scan `git status` output for potentially sensitive files:
 
 - `.env`, `.env.*` files
 - Files containing `secret`, `credential`, `token`, `password`, `key` in their name
-- `id_rsa`, `*.pem`, `*.key`, `*.p12` files
+- `id_rsa`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.p8`, `*.keystore` files
+- `*.json` files that look like service account keys (e.g., `*-credentials.json`, `serviceaccount*.json`)
 
 If any are detected, **warn the user explicitly** and ask whether to exclude them. Do NOT silently stage sensitive files.
 
@@ -119,10 +126,12 @@ Present the proposed message to the user:
 
 Derive a branch name from the commit message:
 
-1. Take the summary part (after `type: `)
-2. Lowercase, replace spaces with hyphens, remove special characters
+1. Take the summary part (after `type: ` or `type(scope): `)
+2. Lowercase, replace spaces with hyphens, remove special characters (including parentheses from scoped types)
 3. Prefix with the type: `feat/add-dark-mode`, `fix/null-token-settings`
 4. Truncate to 60 characters max
+
+**Example:** `feat(auth): implement JWT tokens` → `feat/implement-jwt-tokens`
 
 ```bash
 git checkout -b <branch-name>
@@ -144,7 +153,7 @@ EOF
 )"
 ```
 
-The `Co-authored-by` trailer follows the standard Git/GitHub format (`Name <email>`). The caller or tooling running this workflow supplies the actual name and email at runtime. Do not hardcode specific names in the skill itself.
+The `Co-authored-by` trailer credits AI assistance in the commit history, helping teams track which commits had AI involvement. Use the user's git identity as the commit author and add a `Co-authored-by` for the AI agent. The specific name and email depend on the environment (e.g., `GitHub Copilot <copilot@github.com>` or `Claude <claude@anthropic.com>`). If the AI identity is not known, omit the trailer rather than fabricating one.
 
 If the commit fails due to a pre-commit hook, read the hook output, fix the issue, re-stage, and create a NEW commit (do not amend).
 
@@ -253,7 +262,7 @@ EOF
 git push
 ```
 
-Same `Co-authored-by` rules as New PR flow Step 5.
+Same `Co-authored-by` approach as New PR flow Step 5 — use the AI agent's known identity or omit if unknown.
 
 If the commit fails due to a pre-commit hook, fix the issue and create a NEW commit (do not amend).
 
@@ -297,13 +306,15 @@ Do NOT modify the PR title or body.
 
 ## Constraints
 
-- NEVER force-push
-- NEVER amend existing commits — always create new commits
-- NEVER skip pre-commit hooks (`--no-verify`)
-- NEVER commit `.env`, credentials, or secrets — check before staging and warn if detected
-- If any step fails, stop and report the error — do not continue blindly
+These boundaries protect the user's repository and team workflow:
+
+- Do not force-push — it rewrites shared history and can cause data loss for collaborators
+- Do not amend existing commits — create new ones instead, so the commit timeline stays transparent and reviewable
+- Do not skip pre-commit hooks (`--no-verify`) — hooks enforce project-level quality gates that exist for a reason
+- Do not commit `.env`, credentials, or secrets — always run the sensitive file check before staging and warn if anything is detected
+- If any step fails, stop and report the error — do not continue blindly, because later steps depend on earlier ones succeeding
 - Use `git add -A` for staging (full-change commit flow), but only after the sensitive file check passes
-- The PR body must reflect the actual changes from the diff, not boilerplate
-- The `Co-authored-by` trailer follows the standard Git/GitHub `Name <email>` format — the caller or tooling running this workflow supplies the actual values at runtime; do not hardcode specific names
-- Issue closing keywords (`Closes #N`) go in the PR body, never in the commit message
-- When pushing to an existing PR, do NOT modify the PR title or body — only push the commit
+- The PR body must reflect the actual changes from the diff, not boilerplate — reviewers rely on it to understand the change
+- Add a `Co-authored-by` trailer for the AI agent when its identity is known (e.g., `GitHub Copilot <copilot@github.com>`); omit it rather than guessing — see the note in Step 5 for details
+- Issue closing keywords (`Closes #N`) go in the PR body, not in the commit message — GitHub only processes closing keywords from the PR body on the default branch
+- When pushing to an existing PR, do not modify the PR title or body — only push the new commit
