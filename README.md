@@ -15,9 +15,15 @@ It is designed for:
 
 ## Available Skills
 
+- `emu-branding`: brand guidelines and visual identity for EMU (Egyesület a Magyar Ultrafutásért), including logo, color palette, and typography
 - `github-commit-pr`: end-to-end workflow for committing changes, pushing a branch, and opening or updating a GitHub pull request
 - `github-do-issue`: workflow for fetching a GitHub issue, implementing it in the current repository, and stopping before commit or PR creation
 - `github-issues`: standardized issue creation, labeling, triage, commenting, and issue management through the GitHub CLI
+- `validate-skills`: audit and quality-check SKILL.md files against authoring guidelines and the VS Code skills spec
+
+## Available Instructions
+
+- `agent-tools-authoring`: repository guidance for creating and editing `SKILL.md`, `*.agent.md`, `*.instructions.md`, and `README.md`
 
 ## Available Agents
 

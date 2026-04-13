@@ -1,6 +1,6 @@
 ---
 name: github-issues
-description: "This skill should be used when the user wants to create, manage, or triage GitHub issues. Provides standardized issue templates with required sections, enforces GitHub default labels, and ensures consistent issue quality across any project."
+description: "Create, view, close, comment on, label, triage, and list GitHub issues with standardized structure. Use when someone says 'create an issue', 'file a bug', 'report this', 'open an issue for this', 'triage issues', 'label issue #N', 'close #N', 'list open issues', 'hozz létre egy issue-t', or wants to manage GitHub issues in any way. Enforces issue templates with required sections (Summary, Proposed Solution), applies GitHub's default label taxonomy, and validates labels exist before use."
 category: project-management
 risk: safe
 tags:
@@ -10,7 +10,7 @@ tags:
   - project-management
   - triage
 allowed-tools: Bash, Read, Grep, Glob
-argument-hint: "[create <title> | view <number> | close <number> [reason] | comment <number> <text> | label <number> <label> [--remove] | triage | list [--label <label>]]"
+argument-hint: "[create <title> | view <number> | close <number> [reason] | comment <number> <text> | assign <number> <user> [--remove] | label <number> <label> [--remove] | triage | list [--label <label>]]"
 ---
 
 # github-issues
@@ -210,13 +210,19 @@ gh issue view <number> -R "$REPO" --json title,labels,state
 ```
 
 2. If the issue is already closed, inform the user and stop.
-3. **If closing as duplicate**, require the user to specify the original issue number. Link and close:
+3. **If closing as duplicate**, require the user to specify the original issue number. Verify the original issue exists, then validate the `duplicate` label and close:
 
 ```bash
+gh issue view <original> -R "$REPO" --json number,title,state
+gh label list -R "$REPO" --json name --jq '.[].name' | grep -q '^duplicate$'
 gh issue comment <number> -R "$REPO" --body "Closing as duplicate of #<original>."
-gh issue close <number> -R "$REPO" --reason "duplicate"
+gh issue close <number> -R "$REPO" --reason "not planned"
 gh issue edit <number> -R "$REPO" --add-label "duplicate"
 ```
+
+If the `duplicate` label does not exist, ask the user whether to create it or skip labeling — the comment and close are sufficient on their own.
+
+Note: `gh issue close --reason` only accepts `completed` or `not planned`. For duplicates, use `not planned` — the `duplicate` label and comment provide the actual context.
 
 4. **For other closures**, add a comment explaining why, then close:
 
@@ -242,6 +248,34 @@ gh issue comment <number> -R "$REPO" --body "<text>"
 ```
 
 3. Confirm the comment was posted with a link.
+
+### `assign <number> <user> [--remove]`
+
+1. Verify the issue exists:
+
+```bash
+gh issue view <number> -R "$REPO" --json number,title,state,assignees
+```
+
+2. If `--remove` is **not** provided, assign the user:
+
+```bash
+gh issue edit <number> -R "$REPO" --add-assignee "<user>"
+```
+
+   If `--remove` **is** provided, unassign:
+
+```bash
+gh issue edit <number> -R "$REPO" --remove-assignee "<user>"
+```
+
+3. If `<user>` is `@me` or `me`, resolve to the authenticated user:
+
+```bash
+gh api user --jq '.login'
+```
+
+4. Confirm the assignment change.
 
 ### `label <number> <label> [--remove]`
 
@@ -333,10 +367,12 @@ If `--label <label>` is specified in the arguments, add `--label "<label>"` to f
 
 ## Constraints
 
-- Never create issues without at least one type label
-- Always present the full issue for user review before creating
-- Never close issues without adding a comment explaining why
-- Always link duplicate issues before closing with `duplicate` label
-- When editing existing issues, use `--add-label` (not `--label`) to preserve existing labels
-- Do not create new labels without explicit user confirmation
-- Include specific file paths and code references in issue bodies when the context is known
+These rules keep issue quality high and prevent accidental damage to existing labels and issues:
+
+- Every issue needs at least one type label — labels are the primary categorization mechanism and enable filtering and triage
+- Present the full issue (title, body, labels) for user review before creating — the user owns the final content
+- Add a comment explaining why before closing any issue — future readers need to understand the decision
+- Link the original issue before closing as duplicate — this preserves the relationship in GitHub's UI
+- Use `--add-label` (not `--label`) when editing issues — `--label` replaces all existing labels, which can silently remove important categorization
+- Do not create new labels without user confirmation — labels are shared across the entire repository and affect everyone's workflow
+- Include specific file paths and code references in issue bodies when context is available — actionable issues with concrete pointers get resolved faster
