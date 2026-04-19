@@ -66,6 +66,14 @@ SKILLS=(
   "anthropics/skills|skills/skill-creator"
   "anthropics/skills|skills/theme-factory"
 
+  # firebase/agent-skills
+  "firebase/agent-skills|skills/firebase-app-hosting-basics"
+  "firebase/agent-skills|skills/firebase-auth-basics"
+  "firebase/agent-skills|skills/firebase-basics"
+  "firebase/agent-skills|skills/firebase-firestore-advanced"
+  "firebase/agent-skills|skills/firebase-hosting-basics"
+  "firebase/agent-skills|skills/firebase-security-rules-auditor"
+
   # github/awesome-copilot
   "github/awesome-copilot|skills/gh-cli"
   "github/awesome-copilot|skills/draw-io-diagram-generator"
