@@ -70,7 +70,7 @@ SKILLS=(
   "firebase/agent-skills|skills/firebase-app-hosting-basics"
   "firebase/agent-skills|skills/firebase-auth-basics"
   "firebase/agent-skills|skills/firebase-basics"
-  "firebase/agent-skills|skills/firebase-firestore-advanced"
+  "firebase/agent-skills|skills/firebase-firestore-standard"
   "firebase/agent-skills|skills/firebase-hosting-basics"
   "firebase/agent-skills|skills/firebase-security-rules-auditor"
 
@@ -326,56 +326,46 @@ do_skills() {
     esac
   done
 
-  # Install missing skills into agent: targets only.
+  local src_base=""
+  [[ -n "$first_agent" ]] && src_base=$(agent_skills_dir "$first_agent")
+
+  # For each skill: install or update in agent: targets, then immediately
+  # mirror to dir: targets so they always reflect the latest version.
   for entry in "${SKILLS[@]}"; do
     IFS='|' read -r repo path <<< "$entry"
     skill_name="${path##*/}"
+
     for target in "${agent_targets[@]}"; do
       if ! target_dir=$(resolve_target_dir "$target"); then
         echo "unknown SKILL_TARGETS entry: $target" >&2
         continue
       fi
       mkdir -p "$target_dir"
-      if [[ -f "$target_dir/$skill_name/SKILL.md" ]]; then
-        skip "gh skill install $skill_name → $target" "already installed" "no_summary"
-        continue
+      if [[ ! -f "$target_dir/$skill_name/SKILL.md" ]]; then
+        run "gh skill install $skill_name → $target" \
+          gh skill install "$repo" "$path" --dir "$target_dir"
+      else
+        run_if_changed "gh skill update $skill_name → $target" "$target_dir/$skill_name" \
+          gh skill update "$skill_name" --dir "$target_dir" --all
       fi
-      run "gh skill install $repo $path → $target" \
-        gh skill install "$repo" "$path" --dir "$target_dir"
     done
-  done
 
-  # Update installed skills in agent: targets.
-  for entry in "${SKILLS[@]}"; do
-    IFS='|' read -r repo path <<< "$entry"
-    skill_name="${path##*/}"
-    for target in "${agent_targets[@]}"; do
-      target_dir=$(resolve_target_dir "$target") || continue
-      [[ -f "$target_dir/$skill_name/SKILL.md" ]] || continue
-      run_if_changed "gh skill update $skill_name → $target" "$target_dir/$skill_name" \
-        gh skill update "$skill_name" --dir "$target_dir" --all
-    done
-  done
-
-  # Sync dir: targets from the first agent dir (preserves gh metadata).
-  if [[ -n "$first_agent" && ${#dirs[@]} -gt 0 ]]; then
-    local src_base src d
-    src_base=$(agent_skills_dir "$first_agent")
-    for d in "${dirs[@]}"; do
-      mkdir -p "$d"
-      for entry in "${SKILLS[@]}"; do
-        IFS='|' read -r repo path <<< "$entry"
-        skill_name="${path##*/}"
-        src="$src_base/$skill_name"
-        if [[ -d "$src" ]]; then
+    # Mirror to every dir: target right after the agent: install/update.
+    if [[ -n "$src_base" && ${#dirs[@]} -gt 0 ]]; then
+      local src="$src_base/$skill_name" d
+      if [[ -d "$src" ]]; then
+        for d in "${dirs[@]}"; do
+          mkdir -p "$d"
           run_if_changed "rsync $skill_name → $d" "$d/$skill_name" \
             rsync -a --delete "$src/" "$d/$skill_name/"
-        else
+        done
+      else
+        for d in "${dirs[@]}"; do
           skip "rsync $skill_name → $d" "not yet installed in $first_agent" "no_summary"
-        fi
-      done
-    done
-  fi
+        done
+      fi
+    fi
+  done
 }
 
 do_cleanup() {
