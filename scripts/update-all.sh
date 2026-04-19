@@ -385,6 +385,9 @@ do_cleanup() {
   else
     skip "brew cleanup" "brew not installed"
   fi
+
+  # Library/Caches cleanup
+  run "rm -rf ~/Library/Caches/*" rm -rf "$HOME"/Library/Caches/*
 }
 
 do_mo_clean() {
