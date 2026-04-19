@@ -5,12 +5,9 @@ on:
     paths:
       - 'skills/**'
       - 'agents/**'
-      - '.github/instructions/**'
       - '.github/scripts/**'
       - '.github/workflows/**'
-      - 'AGENTS.md'
       - 'README.md'
-      - 'copilot-instructions.md'
   push:
     branches:
       - main
