@@ -113,6 +113,7 @@ STEPS=(
   "pipx|C_PYTHON|pipx: upgrade all packages"
   "gh-ext|C_GITHUB|GitHub CLI extensions: upgrade all"
   "skills|C_SKILLS|Agent skills: install/update via gh skill"
+  "cleanup|C_APPLE|Cleanup: npm/pnpm cache + Library/Caches"
   "mo-clean|C_MO|mo: clean"
   "mo-optimize|C_MO|mo: optimize"
   "macos|C_APPLE|macOS system updates (check only)"
@@ -360,6 +361,29 @@ do_skills() {
         fi
       done
     done
+  fi
+}
+
+do_cleanup() {
+  # npm cache cleanup
+  if have npm; then
+    run "npm cache clean" npm cache clean --force
+  else
+    skip "npm cache clean" "npm not installed"
+  fi
+
+  # pnpm cache cleanup
+  if have pnpm; then
+    run "pnpm store prune" pnpm store prune
+  else
+    skip "pnpm store prune" "pnpm not installed"
+  fi
+
+  # Brew cleanup
+  if have brew; then
+    run "brew cleanup --prune" brew cleanup --prune=all
+  else
+    skip "brew cleanup" "brew not installed"
   fi
 }
 
