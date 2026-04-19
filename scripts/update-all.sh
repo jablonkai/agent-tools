@@ -66,14 +66,20 @@ SKILLS=(
   "anthropics/skills|skills/skill-creator"
   "anthropics/skills|skills/theme-factory"
 
-  # upstash/context7
-  "upstash/context7|skills/find-docs"
+  # github/awesome-copilot
+  "github/awesome-copilot|skills/gh-cli"
+  "github/awesome-copilot|skills/draw-io-diagram-generator"
+  "github/awesome-copilot|skills/gdpr-compliant"
 
   # jablonkai/agent-tools
   "jablonkai/agent-tools|skills/emu-branding"
   "jablonkai/agent-tools|skills/github-commit-pr"
   "jablonkai/agent-tools|skills/github-do-issue"
+  "jablonkai/agent-tools|skills/github-fix-action-error"
   "jablonkai/agent-tools|skills/github-issues"
+
+  # upstash/context7
+  "upstash/context7|skills/find-docs"
 )
 
 # Force Homebrew to emit its progress output even when stdout isn't
