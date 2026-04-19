@@ -33,6 +33,8 @@ check_skill_frontmatter() {
 check_agent_frontmatter() {
   local file
 
+  [[ -d agents ]] || return 0
+
   while IFS= read -r file; do
     [[ -f "$file" ]] || continue
 
@@ -76,6 +78,8 @@ check_instruction_frontmatter() {
 
 check_agent_names() {
   local invalid
+
+  [[ -d agents ]] || return 0
 
   invalid=$(find agents -type f -name '*.md' ! -name '*.agent.md' -print)
   if [[ -n "$invalid" ]]; then

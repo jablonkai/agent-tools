@@ -226,9 +226,22 @@ EOF
 - **Title:** first line of commit summary without the `type:` prefix, max 70 chars
 - **Base branch:** detected in pre-flight or from `$ARGUMENTS`
 
-### Step 9: Report
+### Step 9: Watch CI
 
-Output the PR URL.
+After the PR is created, wait for the GitHub Actions run triggered by the push to finish:
+
+```bash
+gh run watch $(gh run list --branch <branch-name> --limit 1 --json databaseId --jq '.[0].databaseId') --exit-status
+```
+
+- `--exit-status` makes the command exit non-zero when the run fails, so failure is easy to detect.
+- If no run is found yet, retry after a short delay (CI may not have registered the push immediately).
+- If the run **succeeds** → continue to Step 10.
+- If the run **fails** → invoke the `github-fix-action-error` skill to diagnose and fix the failure, then (after the fix is committed and pushed) re-watch the new run. Repeat until the build is green or the user aborts.
+
+### Step 10: Report
+
+Output the PR URL and the final CI status.
 
 ## Push to existing PR flow
 
@@ -275,14 +288,27 @@ git push
 
 If rebase has conflicts, stop and report — do not force-push or auto-resolve.
 
-### Step 5: Report
+### Step 5: Watch CI
 
-Show the existing PR URL and the new commit summary:
+After pushing, wait for the GitHub Actions run triggered by the new commit to finish:
+
+```bash
+gh run watch $(gh run list --branch "$(git branch --show-current)" --limit 1 --json databaseId --jq '.[0].databaseId') --exit-status
+```
+
+- `--exit-status` makes the command exit non-zero when the run fails.
+- If the run **succeeds** → continue to Step 6.
+- If the run **fails** → invoke the `github-fix-action-error` skill to diagnose and fix the failure, then (after the fix is committed and pushed) re-watch the new run. Repeat until the build is green or the user aborts.
+
+### Step 6: Report
+
+Show the existing PR URL, the new commit summary, and the final CI status:
 
 ```
 Pushed to PR #<number>: <pr-title>
 New commit: <type>: <summary>
 URL: <pr-url>
+CI: <success|fixed after N attempts>
 ```
 
 Do NOT create a new PR — just push to the existing one.
