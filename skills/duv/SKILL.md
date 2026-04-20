@@ -162,7 +162,7 @@ curl -s "https://statistik.d-u-v.org/calendar.php?year=futur&dist=6d&country=4&c
 
 Use `calendar.php` — **not** `geteventlist.php` — whenever the user asks about upcoming, future, or scheduled races. `geteventlist.php` is tuned for completed events with results; `calendar.php` is the forward-looking view and exposes extra filters.
 
-- `year` — `futur` (from today on), `past1` (1 year back), a specific year, or `all`. Plain `past` is *not* a valid token.
+- `year` — `futur` (from today on), `past1` (1 year back), a specific 4-digit year (the dropdown offers 1990 through next year, e.g. `2026`, `2027`, `2014`), or `all`. Plain `past` is *not* a valid token.
 - `country` — IOC-3 for a country, or numeric `1`–`6` for a continent (`1`=Europe, `2`=Asia, `3`=Africa, `4`=North America, `5`=South America, `6`=Oceania).
 - `dist` — shared `dist` vocabulary above; also accepts surface tokens (`Road`, `Trail`, …) in this slot.
 - `cups` — numeric token: `0`=all, `1`=DUV-Cup, `2`=DUV-50km-Cup, `3`=DUV-6h-Cup, `4`=IAU-50k-Trophy, `5`=Championships, `6`=ECU, `7`=Anglo Celtic Plate. (The form shows names; the posted value is the numeric id.)
@@ -171,7 +171,11 @@ Use `calendar.php` — **not** `geteventlist.php` — whenever the user asks abo
 - `radius` — kilometers around a location; only meaningful together with the site's lat/lon context. Leave blank unless reproducing a user-supplied URL.
 - `norslt=1` — "without result list": hide events that already have posted results (useful when combined with past years to find events that haven't published results yet). Omit for normal behaviour.
 
-Each row links to `getresultevent.php?event=<id>` (or a pre-race info page for events that haven't happened yet).
+Result table columns: **Date | Event | Distance/Duration | Venue (Country) | Status | IAU-Label | Results**. The "Results" column links to `getresultevent.php?event=<id>` for completed events; pre-race / upcoming events link to an event info page instead.
+
+Result count is stated inline as `1 to N of M search results` — there is no pagination, so if `N < M` you need to narrow filters. In practice the hard cap is the same 1000-row ceiling as elsewhere on the site.
+
+**Submit.x / Submit.y in pasted URLs.** When a user pastes a calendar URL from their browser you'll often see `Submit.x=<n>&Submit.y=<n>` tacked on — those are the pixel coordinates of the click on the form's image submit button and carry no filter meaning. Drop them when scripting; keeping them doesn't hurt but adds noise.
 
 ### `getintbestlist.php` — international rankings
 
