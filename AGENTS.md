@@ -7,8 +7,6 @@ Reusable AI tooling repository: skills, custom agents, instruction files, and pr
 | Path | Purpose |
 |------|---------|
 | `skills/<name>/SKILL.md` | Reusable skill, one directory per skill |
-| `agents/<name>.agent.md` | Custom agent definitions |
-| `.github/instructions/*.instructions.md` | Repository-scoped instruction files |
 | `scripts/update-all.sh` | Helper script to install tooling globally |
 | `.github/scripts/validate.sh` | Local validation (run before committing) |
 
@@ -20,14 +18,6 @@ Reusable AI tooling repository: skills, custom agents, instruction files, and pr
 - Required YAML frontmatter fields: `name`, `description`
 - Common optional fields: `category`, `risk`, `tags`, `allowed-tools`, `argument-hint`
 - Use existing skills (e.g. [github-commit-pr](skills/github-commit-pr/SKILL.md)) as a template
-
-### Agents (`agents/`)
-- File naming: `<name>.agent.md` — files not ending in `.agent.md` will fail validation
-- Required YAML frontmatter fields: `name`, `description`
-
-### Instruction files (`.github/instructions/`)
-- File naming: `*.instructions.md`
-- Required YAML frontmatter field: `applyTo`
 
 ## Validation
 
