@@ -6,15 +6,14 @@
 set -u
 
 # ---------- skill configuration ----------
-# Target agents / directories every skill gets installed into.
-# Each entry is one of:
-#   agent:<name>   — use `gh skill install --agent <name> --scope user`
-#                    supported: github-copilot | claude-code | cursor | codex | gemini | antigravity
-#   dir:<path>     — use `gh skill install --dir <path>` (custom directory)
+# Target agents every skill gets installed into.
+# Names follow the `android skills add --agent` convention. The `gh skill`
+# step remaps `common` → `universal` since gh uses that name for the same
+# shared `~/.config/agents/skills` location.
 SKILL_TARGETS=(
-  "agent:claude-code"
-  "agent:antigravity"
-  "dir:$HOME/.agents/skills"
+  "claude-code"
+  "antigravity"
+  "common"
 )
 
 # Skills to install/update via `gh skill`.
@@ -25,41 +24,29 @@ SKILL_TARGETS=(
 #                its built-in discovery.
 # Note: android/skills are managed separately by the `android` CLI step.
 # Android skills — installed via the `android` CLI (see do_android_skills).
-# These go into the same targets as SKILLS. agent: targets are handled
-# natively by `android skills add --agent`; dir: targets are synced
-# afterwards by copying from one of the installed agent dirs.
+# These go into the same targets as SKILL_TARGETS, used as-is.
 ANDROID_SKILLS=(
   "navigation-3"
   "r8-analyzer"
   "edge-to-edge"
 )
 
-# Maps each supported `agent:` name to its on-disk skills directory.
-# Used when rsyncing android skills into dir: targets.
+# Maps each supported target name to its on-disk skills directory.
 agent_skills_dir() {
   case "$1" in
     claude-code)    echo "$HOME/.claude/skills" ;;
     antigravity)    echo "$HOME/.gemini/antigravity/skills" ;;
-    github-copilot) echo "$HOME/.github-copilot/skills" ;;
-    cursor)         echo "$HOME/.cursor/skills" ;;
-    codex)          echo "$HOME/.codex/skills" ;;
-    gemini)         echo "$HOME/.gemini/skills" ;;
+    common)         echo "$HOME/.agents/skills" ;;
     *)              return 1 ;;
   esac
 }
 
-# Given a SKILL_TARGETS entry (e.g. "agent:claude-code" or "dir:/path"),
-# print its on-disk skills directory. Returns nonzero for unknown targets.
-resolve_target_dir() {
-  local kind="${1%%:*}" value="${1#*:}"
-  case "$kind" in
-    agent) agent_skills_dir "$value" ;;
-    dir)   echo "$value" ;;
-    *)     return 1 ;;
-  esac
-}
-
 SKILLS=(
+  # android/skills
+  # "android/skills|navigation/navigation-3"
+  # "android/skills|performance/r8-analyzer"
+  # "android/skills|system/edge-to-edge"
+  
   # anthropics/skills
   "anthropics/skills|skills/canvas-design"
   "anthropics/skills|skills/frontend-design"
@@ -75,28 +62,17 @@ SKILLS=(
   "firebase/agent-skills|skills/firebase-security-rules-auditor"
 
   # flutter/skills
-  "flutter/skills|skills/flutter-adding-home-screen-widgets"
-  "flutter/skills|skills/flutter-animating-apps"
-  "flutter/skills|skills/flutter-architecting-apps"
-  "flutter/skills|skills/flutter-building-forms"
-  "flutter/skills|skills/flutter-building-layouts"
-  "flutter/skills|skills/flutter-building-plugins"
-  "flutter/skills|skills/flutter-caching-data"
-  "flutter/skills|skills/flutter-embedding-native-views"
-  "flutter/skills|skills/flutter-handling-concurrency"
-  "flutter/skills|skills/flutter-handling-http-and-json"
-  "flutter/skills|skills/flutter-implementing-navigation-and-routing"
-  "flutter/skills|skills/flutter-improving-accessibility"
-  "flutter/skills|skills/flutter-interoperating-with-native-apis"
-  "flutter/skills|skills/flutter-localizing-apps"
-  "flutter/skills|skills/flutter-managing-state"
-  "flutter/skills|skills/flutter-reducing-app-size"
-  "flutter/skills|skills/flutter-setting-up-on-linux"
-  "flutter/skills|skills/flutter-setting-up-on-macos"
-  "flutter/skills|skills/flutter-setting-up-on-windows"
-  "flutter/skills|skills/flutter-testing-apps"
-  "flutter/skills|skills/flutter-theming-apps"
-  "flutter/skills|skills/flutter-working-with-databases"
+  "flutter/skills|skills/flutter-accessibility-audit"
+  "flutter/skills|skills/flutter-add-integration-test"
+  "flutter/skills|skills/flutter-add-widget-preview"
+  "flutter/skills|skills/flutter-add-widget-test"
+  "flutter/skills|skills/flutter-apply-architecture-best-practices"
+  "flutter/skills|skills/flutter-build-responsive-layout"
+  "flutter/skills|skills/flutter-fix-layout-issues"
+  "flutter/skills|skills/flutter-implement-json-serialization"
+  "flutter/skills|skills/flutter-setup-declarative-routing"
+  "flutter/skills|skills/flutter-setup-localization"
+  "flutter/skills|skills/flutter-use-http-package"
 
   # github/awesome-copilot
   "github/awesome-copilot|skills/gh-cli"
@@ -181,6 +157,7 @@ step() {
 run() {
   local label="$1"; shift
   local start end dur status
+  printf '%s$ %s%s\n' "${DIM}" "$*" "${RESET}"
   start=$(date +%s)
   "$@"
   local rc=$?
@@ -212,6 +189,7 @@ run_if_changed() {
   local label="$1" watch_dir="$2"; shift 2
   local before after start end dur
   before=$(find "$watch_dir" -type f 2>/dev/null | sort | xargs shasum 2>/dev/null | shasum | cut -d' ' -f1)
+  printf '%s$ %s%s\n' "${DIM}" "$*" "${RESET}"
   start=$(date +%s)
   "$@"
   local rc=$?
@@ -254,23 +232,13 @@ do_android_skills() {
     return
   fi
 
-  # Partition SKILL_TARGETS into agent: and dir: lists.
-  local target kind value agents="" first_agent=""
-  local dirs=()
+  local target agents=""
   for target in "${SKILL_TARGETS[@]}"; do
-    kind="${target%%:*}"
-    value="${target#*:}"
-    case "$kind" in
-      agent)
-        agents+="${agents:+,}$value"
-        [[ -z "$first_agent" ]] && first_agent="$value"
-        ;;
-      dir) dirs+=("$value") ;;
-    esac
+    agents+="${agents:+,}$target"
   done
 
   if [[ -z "$agents" ]]; then
-    skip "android skills add" "no agent: targets in SKILL_TARGETS"
+    skip "android skills add" "no targets in SKILL_TARGETS"
     return
   fi
 
@@ -279,27 +247,6 @@ do_android_skills() {
     run "android skills add --skill $skill → $agents" \
       android skills add --skill "$skill" --agent "$agents"
   done
-
-  # Sync into dir: targets by copying from the first agent's install dir.
-  if ((${#dirs[@]})); then
-    local src_dir
-    if ! src_dir=$(agent_skills_dir "$first_agent"); then
-      skip "android skills → dir targets" "unknown agent dir for $first_agent"
-      return
-    fi
-    local d skill src
-    for d in "${dirs[@]}"; do
-      mkdir -p "$d"
-      for skill in "${ANDROID_SKILLS[@]}"; do
-        src="$src_dir/$skill"
-        if [[ -d "$src" ]]; then
-          run "rsync $skill → $d" rsync -a --delete "$src/" "$d/$skill/"
-        else
-          skip "rsync $skill → $d" "source not found: $src"
-        fi
-      done
-    done
-  fi
 }
 
 do_flutter() {
@@ -341,54 +288,52 @@ do_skills() {
   fi
 
   local entry repo path target skill_name target_dir
-  local first_agent="" agent_targets=() dirs=()
+  local known_dir common_dir
+  local placement_args
 
-  for target in "${SKILL_TARGETS[@]}"; do
-    local kind="${target%%:*}" value="${target#*:}"
-    case "$kind" in
-      agent) agent_targets+=("$target"); [[ -z "$first_agent" ]] && first_agent="$value" ;;
-      dir)   dirs+=("$value") ;;
-    esac
-  done
-
-  local src_base=""
-  [[ -n "$first_agent" ]] && src_base=$(agent_skills_dir "$first_agent")
-
-  # For each skill: install or update in agent: targets, then immediately
-  # mirror to dir: targets so they always reflect the latest version.
   for entry in "${SKILLS[@]}"; do
     IFS='|' read -r repo path <<< "$entry"
     skill_name="${path##*/}"
+    known_dir=""
+    common_dir=""
 
-    for target in "${agent_targets[@]}"; do
-      if ! target_dir=$(resolve_target_dir "$target"); then
+    for target in "${SKILL_TARGETS[@]}"; do
+      target_dir=$(agent_skills_dir "$target") || {
         echo "unknown SKILL_TARGETS entry: $target" >&2
         continue
+      }
+
+      # `common` (~/.agents/skills) is a custom directory for `gh skill`,
+      # so use `--dir` together with `--agent universal` (the matching agent
+      # name). Other targets are known agents — use `--agent --scope`.
+      if [[ "$target" == "common" ]]; then
+        placement_args=(--agent universal --dir "$target_dir")
+      else
+        placement_args=(--agent "$target" --scope user)
       fi
-      mkdir -p "$target_dir"
+
       if [[ ! -f "$target_dir/$skill_name/SKILL.md" ]]; then
         run "gh skill install $skill_name → $target" \
-          gh skill install "$repo" "$path" --dir "$target_dir"
+          gh skill install "$repo" "$path" "${placement_args[@]}"
       else
-        run_if_changed "gh skill update $skill_name → $target" "$target_dir/$skill_name" \
-          gh skill update "$skill_name" --dir "$target_dir" --all
+        skip "gh skill install $skill_name → $target" "already installed, will update" "no_summary"
+        if [[ "$target" == "common" ]]; then
+          common_dir="$target_dir"
+        else
+          [[ -z "$known_dir" ]] && known_dir="$target_dir"
+        fi
       fi
     done
 
-    # Mirror to every dir: target right after the agent: install/update.
-    if [[ -n "$src_base" && ${#dirs[@]} -gt 0 ]]; then
-      local src="$src_base/$skill_name" d
-      if [[ -d "$src" ]]; then
-        for d in "${dirs[@]}"; do
-          mkdir -p "$d"
-          run_if_changed "rsync $skill_name → $d" "$d/$skill_name" \
-            rsync -a --delete "$src/" "$d/$skill_name/"
-        done
-      else
-        for d in "${dirs[@]}"; do
-          skip "rsync $skill_name → $d" "not yet installed in $first_agent" "no_summary"
-        done
-      fi
+    # `gh skill update --all` scans known agent host dirs automatically;
+    # for the `common` custom dir we need an explicit `--dir` update.
+    if [[ -n "$known_dir" ]]; then
+      run_if_changed "gh skill update $skill_name" "$known_dir/$skill_name" \
+        gh skill update "$skill_name" --all
+    fi
+    if [[ -n "$common_dir" ]]; then
+      run_if_changed "gh skill update $skill_name → common" "$common_dir/$skill_name" \
+        gh skill update "$skill_name" --dir "$common_dir" --all
     fi
   done
 }
