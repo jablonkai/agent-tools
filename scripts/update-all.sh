@@ -74,6 +74,30 @@ SKILLS=(
   "firebase/agent-skills|skills/firebase-hosting-basics"
   "firebase/agent-skills|skills/firebase-security-rules-auditor"
 
+  # flutter/skills
+  "flutter/skills|skills/flutter-adding-home-screen-widgets"
+  "flutter/skills|skills/flutter-animating-apps"
+  "flutter/skills|skills/flutter-architecting-apps"
+  "flutter/skills|skills/flutter-building-forms"
+  "flutter/skills|skills/flutter-building-layouts"
+  "flutter/skills|skills/flutter-building-plugins"
+  "flutter/skills|skills/flutter-caching-data"
+  "flutter/skills|skills/flutter-embedding-native-views"
+  "flutter/skills|skills/flutter-handling-concurrency"
+  "flutter/skills|skills/flutter-handling-http-and-json"
+  "flutter/skills|skills/flutter-implementing-navigation-and-routing"
+  "flutter/skills|skills/flutter-improving-accessibility"
+  "flutter/skills|skills/flutter-interoperating-with-native-apis"
+  "flutter/skills|skills/flutter-localizing-apps"
+  "flutter/skills|skills/flutter-managing-state"
+  "flutter/skills|skills/flutter-reducing-app-size"
+  "flutter/skills|skills/flutter-setting-up-on-linux"
+  "flutter/skills|skills/flutter-setting-up-on-macos"
+  "flutter/skills|skills/flutter-setting-up-on-windows"
+  "flutter/skills|skills/flutter-testing-apps"
+  "flutter/skills|skills/flutter-theming-apps"
+  "flutter/skills|skills/flutter-working-with-databases"
+
   # github/awesome-copilot
   "github/awesome-copilot|skills/gh-cli"
   "github/awesome-copilot|skills/draw-io-diagram-generator"
@@ -280,7 +304,7 @@ do_android_skills() {
 
 do_flutter() {
   if have flutter; then
-    run "flutter upgrade" flutter upgrade
+    run "flutter upgrade --force" flutter upgrade --force
   else
     skip "flutter" "not installed"
   fi
