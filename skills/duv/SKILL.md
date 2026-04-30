@@ -11,7 +11,7 @@ The DUV (Deutsche Ultramarathon-Vereinigung) statistics site at `https://statist
 
 Parameter names and values were verified against the live HTML forms — neither is always what the on-screen label suggests (e.g. the "country" dropdown on rankings posts as `nat`, not `country`; the "F" option posts as `W`). When in doubt, fetch the page and grep for `name='...'` inside `<select>`/`<input>` elements, and pull `<option value='...'>` to see the exact tokens.
 
-**Silent-filter failure warning.** For most of these endpoints, passing a value the backend doesn't recognise does not raise an error — it just drops the filter and returns the unfiltered page (typically 1000 rows, the page cap). That's why the exact tokens below matter: a wrong-looking result is usually a dropped filter, not a shortage of data.
+**Silent-filter failure warning.** For most of these endpoints, passing a value the backend doesn't recognise does not raise an error — it just drops the filter and returns the unfiltered page up to a hard row cap (1000 rows on most endpoints, 4000 on `getintbestlist.php`). That's why the exact tokens below matter: a wrong-looking or suspiciously-large result is usually a dropped filter, not a shortage of data. When in doubt, vary one parameter and watch the result count change — if it doesn't, the filter isn't being applied.
 
 ## Core URL patterns
 
@@ -42,10 +42,17 @@ Different endpoints use different names and different value vocabularies for con
 
 ### Country / nation
 
-- `geteventlist.php`, `calendar.php`, `getresultclub.php` → `country=<IOC-3>` (e.g. `HUN`, `GER`, `USA`).
-- `getintbestlist.php` → `nat=<IOC-3>` (same codes, different param name).
-- `calendar.php` also accepts numeric continent codes on `country`: `1`=Europe, `2`=Asia, `3`=Africa, `4`=North America, `5`=South America, `6`=Oceania.
-- Use `all` (or omit) for world-wide.
+One shared scheme, two param names. The same numeric continent codes and IOC-3 country codes work on every country/nation filter — only the param name changes.
+
+- `geteventlist.php`, `calendar.php`, `getresultclub.php` → `country=`
+- `getintbestlist.php` → `nat=` (same value vocabulary, different param name)
+
+Accepted values:
+- `all` (or omit the param) → worldwide.
+- Numeric continent codes: `1`=Europe, `2`=Asia, `3`=Africa, `4`=North America, `5`=South America, `6`=Oceania.
+- IOC-3 country codes (e.g. `HUN`, `GER`, `USA`) — work on all four endpoints, including `getintbestlist.php`'s `nat=` even though the visible dropdown there only shows the seven continental options.
+
+The labels shown in the dropdown (`World`, `Europe`, …) are **not** valid values — `nat=Europe` silently returns 0 rows; use `nat=1`. Likewise the worldwide selector is `all`, not `World`.
 
 ### Distance (`dist`)
 
@@ -57,9 +64,9 @@ One shared vocabulary across `geteventlist.php`, `getintbestlist.php`, and `cale
 - Distance-range codes (geteventlist + calendar only): `1` = 45–79 km, `2` = 80–119 km, `4` = 120–179 km, `8` = 180 km+
 - `calendar.php` additionally accepts surface tokens in the `dist` slot (same values as `surface`, see next section): `Road`, `Trail`, `Stage`, `Track`, `Indoo`, `Elim`, `Backy`, `Walk`
 
-### Race surface (`surface` on geteventlist, `racetype` on club)
+### Race surface (`surface` on `geteventlist.php`; `dist` slot on `calendar.php`)
 
-Case-sensitive, truncated tokens exactly as they appear in the form dropdown. Common full-word variants (`road`, `trail`, `indoor`, `elimination`, `backyard`, `walking`) are NOT recognised and silently return unfiltered results:
+Case-sensitive, truncated tokens exactly as they appear in the form dropdown. Common full-word variants (`road`, `trail`, `indoor`, `elimination`, `backyard`, `walking`) are NOT recognised and silently return unfiltered results. `getresultclub.php` has *no* surface filter — its `racetype` param is something else entirely (see that section).
 
 - `Road` — road race
 - `Trail`
@@ -90,7 +97,12 @@ Gender-prefixed tokens, paired with the `gender` value:
 
 ### IAU label (`label`)
 
-On both `geteventlist.php` and `getintbestlist.php`: empty string (omit the param) = all events, `label=Y` = IAU-labelled events only. The dropdown label reads "IAU-Label" but that string is *not* the value — passing `label=IAU-Label` silently drops the filter.
+Filters to IAU-labelled events only. The form *value* differs between the two endpoints — same concept, different token:
+
+- `geteventlist.php` → `label=Y`
+- `getintbestlist.php` → `label=IAU`
+
+Omit the param (or pass empty) for "all events". The dropdown label "IAU-Label" is the visible text, not the value — passing `label=IAU-Label` silently drops the filter on both endpoints, and `label=Y` silently drops it on `getintbestlist.php`.
 
 ## Endpoint reference
 
@@ -111,8 +123,12 @@ curl -sL "https://statistik.d-u-v.org/searchrunner.php?sname=Jablonkai&language=
 curl -s "https://statistik.d-u-v.org/getresultperson.php?runner=401716&language=EN"
 ```
 
-- `runner=<id>` is the only meaningful param (besides `language`). The page itself has no filter controls — just a chronological list of every performance, grouped by year, plus DOB, nationality, club, and age-group categories (German + international) computed from DOB.
-- To compare one runner to another, the page embeds a `PersonalBest` / `comparison` form — usually easier to just fetch both runners and diff client-side.
+- `runner=<id>` is the only meaningful param (besides `language`). No filter controls.
+- The page is split into three blocks worth knowing about:
+  1. **Header** — DOB, nationality, club, age-group categories (German + international) computed from DOB.
+  2. **Per-year results** — chronological list of every performance, grouped by year. This is the only place to find non-standard distances (e.g. an 81 km or 111 km race finish) — they don't appear in the PB table below.
+  3. **Personal bests** table — best time per *officially-rankable* distance (50 km, 100 km, 6 h, 12 h, 24 h, 48 h, 6 d, …), with the year of that PB and the runner's rank that year (international/national, in parentheses). This is the canonical answer to "what's their best 100 km?" — but only for those listed distances. For "best result longer than 100 km" or any odd distance, scan the per-year listing instead.
+  4. **Comparison table** — for races the runner has finished multiple times, a year-by-year grid of their times. Useful for trend-spotting on a single runner; you don't need to fetch a second runner to render it.
 
 ### `searchevent.php` — event search
 
@@ -147,9 +163,9 @@ Confirmed form field names (authoritative):
 - `country` — IOC-3, or `all`.
 - `dist` — shared `dist` vocabulary above (`100km`, `24h`, `6d`, range codes `1`/`2`/`4`/`8`, …). No `+` or spaces.
 - `surface` — **NOT `racetype`**. Values: see the race-surface vocabulary above (`Road`, `Trail`, `Stage`, `Track`, `Indoo`, `Elim`, `Backy`, `Walk`, case-sensitive). Lowercase full words silently return unfiltered results.
-- `label` — **NOT `iau`**. Values: omit (= all) or `Y` (= IAU-labelled).
-- `from`, `to` — **NOT `dist_from` / `dist_to`**. Distance-range **codes** from the `dist` dropdown (`1`=45–79 km, `2`=80–119 km, `4`=120–179 km, `8`=180 km+), **not** raw km numbers. `from=80&to=120` is not a valid range and silently returns unfiltered results.
-- `sort` — `Date` (default) or `Finishers`.
+- `label` — **NOT `iau`**. Values: omit (= all) or `Y` (= IAU-labelled). (Note: on `getintbestlist.php` the equivalent value is `IAU`, not `Y` — the two endpoints diverge here.)
+- `from`, `to` — distance bounds in **kilometres** (text inputs in the form labelled "Length from X to Y km"), independent of the `dist` dropdown's range codes. `from=80&to=120` is valid and matches events in that km range. Omit either side for an open-ended bound. Time-based events (24h, 6d) won't match a km filter — for those use `dist=24h` etc. To filter on the dropdown's preset buckets instead, use `dist=1|2|4|8`.
+- `sort` — `1` (Date — default) or `2` (Finishers). The form uses numeric values; passing the dropdown labels (`Date`, `Finishers`) silently falls back to default sort.
 - `club` — optional filter by club (string, partial match).
 
 Response: HTML table, one row per event, with `getresultevent.php?event=<id>` links. The default page size is up to 1000; results beyond that require narrower filters.
@@ -185,15 +201,17 @@ curl -s "https://statistik.d-u-v.org/getintbestlist.php?year=2024&dist=100km&gen
 
 Confirmed form field names:
 
-- `year` — 4-digit (back to ~2005).
+- `year` — 4-digit, or `all` for the all-time list. The dropdown shows 2005 onward, but earlier years still parse and return data (sparser as you go back, e.g. ~120 women on 24h in 1990).
 - `dist` — shared `dist` vocabulary (`100km`, `24h`, `6d`, …) **plus** `1000km`, `1000mi` which only appear here. No `+` or spaces.
-- `nat` — **NOT `country`**. IOC-3 or `all`. Continental groupings also accepted: `World`, `Europe`, `Asia`, `Africa`, `North America`, `South America`, `Oceania`.
+- `nat` — **NOT `country`** (different param name, same value vocabulary as the country/nation section above). `all` (or omit) for World; numeric `1`–`6` for continents (Europe=1, …, Oceania=6); IOC-3 country codes work even though they're not in the visible dropdown. The English labels (`World`, `Europe`, …) are *not* valid values.
 - `gender` — `M` or `W`. (The form label reads "F" for the female list, but the posted value is `W`; `gender=F` silently returns zero rows.)
 - `cat` — **NOT `AgeGrp`**. Age-group code, gender-prefixed: `all`, `MU23`/`WU23`, `M23`/`W23`, `M35`/`W35`, … up to `M90`/`W90`. Must match the `gender` value.
-- `label` — omit for all events, or `Y` for IAU-labelled only. (`IAU-Label` is the dropdown *text*, not the value — passing it drops the filter.)
+- `label` — omit for all events, or `IAU` for IAU-labelled only. (`Y` is the value on `geteventlist.php` but is silently dropped here. `IAU-Label` is the dropdown *text*, never the value.)
 - `hili` (highlight) — overlay highlight for a country (IOC-3) or `none`/`GER`.
 - `tt` (time type) — `netto` or `brutto`.
 - `club` — optional club filter.
+
+**Page cap on this endpoint is 4000 rows**, higher than the 1000-row cap elsewhere. The unfiltered all-time list is around 15 000 entries, so you still need filters to see the tail.
 
 ### `getresultclub.php` — club view
 
@@ -201,14 +219,14 @@ Confirmed form field names:
 curl -s "https://statistik.d-u-v.org/getresultclub.php?club=<name-or-id>&year=2024&language=EN"
 ```
 
-Confirmed form field names:
+Confirmed form field names — note the value vocabularies here look nothing like `geteventlist.php`'s, and the param *names* are deceptive (`racetype` is not a surface filter, `aktype` is not ranking-eligibility):
 
-- `club` — partial match on club name (3–25 chars), or a club id if you already have one.
+- `club` — partial match on club name (3–25 chars), or a club id if you already have one. The page has no separate "find a club" search — start by `searchrunner.php`-ing one of the club's runners and reading their profile, or call this endpoint with a partial name and pick from the results.
 - `sname` — optional runner-name filter within the club.
 - `year` — 2001–current, or `all`.
-- `racetype` — surface filter, same case-sensitive tokens as `surface` on `geteventlist` (`Road`, `Trail`, `Stage`, `Track`, `Indoo`, `Elim`, `Backy`, `Walk`).
-- `aktype` — ranking-eligibility (`all` or `Y` for "Yes only" — the form label is "Ranking proof").
-- `sort` — `Runner/Start date`, `Distance`, `Performance`.
+- `racetype` — **ranking-eligibility flag**, despite the name. Values: `''` (omit) for all races, `Y` for ranking-eligible only. There is **no surface filter** on this endpoint — to get a club's road/trail-only results you have to filter client-side after fetching.
+- `aktype` — **age-category scheme**, despite the name. Values: `1` (Cat. german, default), `2` (Cat. internat.), `3` (event-specific). This only changes how rows are categorised in the displayed table; it does not filter the result set.
+- `sort` — `1` (Runner, Start date — default) or `2` (Distance, Performance). String values (`Distance`, `Performance`, etc.) silently fall back to default.
 
 ### `bulk_search.php` — POST-only bulk lookup
 
@@ -231,7 +249,14 @@ For scripted use, `getresultperson.php` + `searchrunner.php` per name is usually
 - Parse IDs with regex — the HTML is stable but not semantic.
 - HTML entities: links contain `&amp;` — decode before following.
 - Be polite: sequential requests with small delays. The site is community-run.
-- If a param you expect isn't filtering, fetch the page and check both the `name='...'` attribute *and* the `<option value='...'>` text in the form HTML — param names *and* value tokens both diverge from user-facing labels (e.g. `nat` vs "Country", `gender=W` vs "F", `surface=Indoo` vs "indoor", `from`/`to` taking range codes `1`/`2`/`4`/`8` vs km numbers, `label=Y` vs "IAU-Label"). A wrong-looking value usually parses as "no filter" and returns the full page cap (1000 rows), not an error.
+- If a param you expect isn't filtering, fetch the page and check both the `name='...'` attribute *and* the `<option value='...'>` text in the form HTML — param names *and* value tokens both diverge from user-facing labels. Recurring traps:
+  - `nat` vs "Country" on rankings; the worldwide value is `all`, not `World`; continents are numeric `1`–`6`, not their English names.
+  - `gender=W` (not `F`) for the women's list.
+  - `surface=Indoo` / `Backy` / `Elim` / `Walk` (5-char truncation, case-sensitive) — full lowercase words silently fail.
+  - `label` value differs by endpoint: `Y` on `geteventlist.php`, `IAU` on `getintbestlist.php`.
+  - `sort` is numeric (`1`/`2`) on `geteventlist.php` and `getresultclub.php` — not the dropdown labels.
+  - `racetype`/`aktype` on `getresultclub.php` are misleadingly named (see that section).
+  - Page caps: 1000 rows on most endpoints, **4000** on `getintbestlist.php`. A wrong-looking value usually parses as "no filter" and returns the full page cap, not an error.
 
 ## When unsure of an ID
 
