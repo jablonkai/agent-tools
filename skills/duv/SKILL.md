@@ -11,7 +11,7 @@ The DUV (Deutsche Ultramarathon-Vereinigung) statistics site at `https://statist
 
 Parameter names and values were verified against the live HTML forms — neither is always what the on-screen label suggests (e.g. the "country" dropdown on rankings posts as `nat`, not `country`; the "F" option posts as `W`). When in doubt, fetch the page and grep for `name='...'` inside `<select>`/`<input>` elements, and pull `<option value='...'>` to see the exact tokens.
 
-**Silent-filter failure warning.** For most of these endpoints, passing a value the backend doesn't recognise does not raise an error — it just drops the filter and returns the unfiltered page up to a hard row cap (1000 rows on most endpoints, 4000 on `getintbestlist.php`). That's why the exact tokens below matter: a wrong-looking or suspiciously-large result is usually a dropped filter, not a shortage of data. When in doubt, vary one parameter and watch the result count change — if it doesn't, the filter isn't being applied.
+**Silent-filter failure warning.** Passing a value the backend doesn't recognise usually does not raise an error. Depending on the endpoint and parameter, DUV may return 0 rows, drop only that filter, or fall back to a broader result set up to a hard row cap (1000 rows on most endpoints, 4000 on `getintbestlist.php`). That's why the exact tokens below matter: a wrong-looking result is often a bad parameter, not a shortage of data. When in doubt, vary one parameter and watch the result count and page heading change.
 
 ## Core URL patterns
 
@@ -22,7 +22,8 @@ All endpoints are under `https://statistik.d-u-v.org/`. Every endpoint accepts `
 | `searchrunner.php` | Search runners by name | `sname` |
 | `getresultperson.php` | Runner profile + all results | `runner` |
 | `searchevent.php` | Search events by name or town | `sname` |
-| `getresultevent.php` | Event details + finisher list | `event` |
+| `getresultevent.php` | Race results + finisher list | `event` |
+| `eventdetail.php` | Race metadata/details: date, start town, length, organizer | `event` |
 | `geteventlist.php` | Browse/filter past events | `year`, `country`, `dist`, `surface`, `label`, `from`, `to`, `sort` |
 | `getresultclub.php` | Club results | `club`, `year`, `racetype`, `aktype`, `sort` |
 | `getintbestlist.php` | International rankings | `year`, `dist`, `nat`, `gender`, `cat`, `label`, `hili`, `tt` |
@@ -56,7 +57,7 @@ The labels shown in the dropdown (`World`, `Europe`, …) are **not** valid valu
 
 ### Distance (`dist`)
 
-One shared vocabulary across `geteventlist.php`, `getintbestlist.php`, and `calendar.php`. Values are **compact, no spaces, no `+`** — e.g. `100km`, not `100+km`. Passing `100+km` silently returns unfiltered results.
+One shared vocabulary across `geteventlist.php`, `getintbestlist.php`, and `calendar.php`. Values are **compact, no spaces, no `+`** — e.g. `100km`, not `100 km` or `100+km`. Bad distance tokens can produce 0 rows or a broader/odd-looking page heading.
 
 - Fixed distances: `50km`, `50mi`, `100km`, `100mi`
 - Time-limited: `6h`, `12h`, `24h`, `48h`, `72h`, `6d`, `10d`
@@ -66,7 +67,7 @@ One shared vocabulary across `geteventlist.php`, `getintbestlist.php`, and `cale
 
 ### Race surface (`surface` on `geteventlist.php`; `dist` slot on `calendar.php`)
 
-Case-sensitive, truncated tokens exactly as they appear in the form dropdown. Common full-word variants (`road`, `trail`, `indoor`, `elimination`, `backyard`, `walking`) are NOT recognised and silently return unfiltered results. `getresultclub.php` has *no* surface filter — its `racetype` param is something else entirely (see that section).
+Case-sensitive, truncated tokens exactly as they appear in the form dropdown. Common full-word variants (`road`, `trail`, `indoor`, `elimination`, `backyard`, `walking`) are NOT recognised and may be ignored or return 0 rows. `getresultclub.php` has *no* surface filter — its `racetype` param is something else entirely (see that section).
 
 - `Road` — road race
 - `Trail`
@@ -127,7 +128,7 @@ curl -s "https://statistik.d-u-v.org/getresultperson.php?runner=401716&language=
 - The page is split into three blocks worth knowing about:
   1. **Header** — DOB, nationality, club, age-group categories (German + international) computed from DOB.
   2. **Per-year results** — chronological list of every performance, grouped by year. This is the only place to find non-standard distances (e.g. an 81 km or 111 km race finish) — they don't appear in the PB table below.
-  3. **Personal bests** table — best time per *officially-rankable* distance (50 km, 100 km, 6 h, 12 h, 24 h, 48 h, 6 d, …), with the year of that PB and the runner's rank that year (international/national, in parentheses). This is the canonical answer to "what's their best 100 km?" — but only for those listed distances. For "best result longer than 100 km" or any odd distance, scan the per-year listing instead.
+  3. **Personal bests** table — best time per *officially-rankable* distance (50 km, 100 km, 6 h, 12 h, 24 h, 48 h, 6 d, …), with the year of that PB and the runner's rank that year (international/national, in parentheses). This is the canonical answer to "what's their best 100 km?" — but only when there is an actual `100 km` row. Do not infer a 100 km PB from an 81 km, 111 km, 100 mi, or split-looking result unless the page explicitly lists a 100 km performance. For "best result longer than 100 km" or any odd distance, scan the per-year listing instead.
   4. **Comparison table** — for races the runner has finished multiple times, a year-by-year grid of their times. Useful for trend-spotting on a single runner; you don't need to fetch a second runner to render it.
 
 ### `searchevent.php` — event search
@@ -148,8 +149,21 @@ curl -s "https://statistik.d-u-v.org/getresultevent.php?event=100580&language=EN
 
 - `event=<id>` is the main param.
 - Each finisher row links to `getresultperson.php?runner=<id>`.
+- The header gives date, event name, distance/type, finisher count, ranking eligibility, and source, but it may not expose the start town as a clean field.
+- Follow the page's "More details of this race" link to `eventdetail.php?event=<id>` when the user asks for host town, start location, organizer, address, status, participant limit, course notes, or other event metadata.
 - The page also surfaces view toggles (avg-speed unit km/h vs min/km, category scheme: German / international / event-specific, nation highlight). In practice, scrape the default view and compute derivations locally — the page URL params for these toggles are unstable.
 - Some events bundle several races (e.g. 50k + 100k on the same day) under separate event IDs — resolve each via `searchevent.php` or `geteventlist.php` rather than guessing.
+
+### `eventdetail.php` — event metadata/details
+
+```
+curl -s "https://statistik.d-u-v.org/eventdetail.php?event=111652&language=EN"
+```
+
+- `event=<id>` is the main param.
+- Use this endpoint after `geteventlist.php`, `calendar.php`, `searchevent.php`, or `getresultevent.php` when the user needs fields beyond the result row.
+- The stable metadata labels include **Date**, **Event**, **Start in (Country)**, **Length/Duration**, **Ranking eligible**, **IAU-Label**, **Status**, **Participants limit**, organizer/contact fields, and course details when available.
+- `Start in (Country)` is the clean source for "host town" / "venue town" on past-event queries. Do not guess the town from the event name; some event names include sponsors, race formats, or series names rather than the actual start location.
 
 ### `geteventlist.php` — past-event browse/filter
 
@@ -162,13 +176,13 @@ Confirmed form field names (authoritative):
 - `year` — 4-digit year, or `all`. Default = current year.
 - `country` — IOC-3, or `all`.
 - `dist` — shared `dist` vocabulary above (`100km`, `24h`, `6d`, range codes `1`/`2`/`4`/`8`, …). No `+` or spaces.
-- `surface` — **NOT `racetype`**. Values: see the race-surface vocabulary above (`Road`, `Trail`, `Stage`, `Track`, `Indoo`, `Elim`, `Backy`, `Walk`, case-sensitive). Lowercase full words silently return unfiltered results.
+- `surface` — **NOT `racetype`**. Values: see the race-surface vocabulary above (`Road`, `Trail`, `Stage`, `Track`, `Indoo`, `Elim`, `Backy`, `Walk`, case-sensitive). Lowercase full words are not reliable.
 - `label` — **NOT `iau`**. Values: omit (= all) or `Y` (= IAU-labelled). (Note: on `getintbestlist.php` the equivalent value is `IAU`, not `Y` — the two endpoints diverge here.)
 - `from`, `to` — distance bounds in **kilometres** (text inputs in the form labelled "Length from X to Y km"), independent of the `dist` dropdown's range codes. `from=80&to=120` is valid and matches events in that km range. Omit either side for an open-ended bound. Time-based events (24h, 6d) won't match a km filter — for those use `dist=24h` etc. To filter on the dropdown's preset buckets instead, use `dist=1|2|4|8`.
 - `sort` — `1` (Date — default) or `2` (Finishers). The form uses numeric values; passing the dropdown labels (`Date`, `Finishers`) silently falls back to default sort.
 - `club` — optional filter by club (string, partial match).
 
-Response: HTML table, one row per event, with `getresultevent.php?event=<id>` links. The default page size is up to 1000; results beyond that require narrower filters.
+Response: HTML table, one row per event, with `getresultevent.php?event=<id>` links. The list row has date, event name, distance, finisher count, and IAU label; it does **not** include a separate host-town column. If the user asks for town/venue/start location, follow each event ID to `eventdetail.php?event=<id>` and read `Start in (Country)`. The default page size is up to 1000; results beyond that require narrower filters.
 
 ### `calendar.php` — upcoming / future-race calendar
 
@@ -187,7 +201,7 @@ Use `calendar.php` — **not** `geteventlist.php` — whenever the user asks abo
 - `radius` — kilometers around a location; only meaningful together with the site's lat/lon context. Leave blank unless reproducing a user-supplied URL.
 - `norslt=1` — "without result list": hide events that already have posted results (useful when combined with past years to find events that haven't published results yet). Omit for normal behaviour.
 
-Result table columns: **Date | Event | Distance/Duration | Venue (Country) | Status | IAU-Label | Results**. The "Results" column links to `getresultevent.php?event=<id>` for completed events; pre-race / upcoming events link to an event info page instead.
+Result table columns: **Date | Event | Distance/Duration | Venue (Country) | Status | IAU-Label | Results**. The "Results" column links to `getresultevent.php?event=<id>` for completed events; pre-race / upcoming events link to `eventdetail.php?event=<id>` instead. Use `eventdetail.php` for richer race metadata.
 
 Result count is stated inline as `1 to N of M search results` — there is no pagination, so if `N < M` you need to narrow filters. In practice the hard cap is the same 1000-row ceiling as elsewhere on the site.
 
@@ -252,11 +266,11 @@ For scripted use, `getresultperson.php` + `searchrunner.php` per name is usually
 - If a param you expect isn't filtering, fetch the page and check both the `name='...'` attribute *and* the `<option value='...'>` text in the form HTML — param names *and* value tokens both diverge from user-facing labels. Recurring traps:
   - `nat` vs "Country" on rankings; the worldwide value is `all`, not `World`; continents are numeric `1`–`6`, not their English names.
   - `gender=W` (not `F`) for the women's list.
-  - `surface=Indoo` / `Backy` / `Elim` / `Walk` (5-char truncation, case-sensitive) — full lowercase words silently fail.
+  - `surface=Indoo` / `Backy` / `Elim` / `Walk` (5-char truncation, case-sensitive) — full lowercase words fail or get ignored.
   - `label` value differs by endpoint: `Y` on `geteventlist.php`, `IAU` on `getintbestlist.php`.
   - `sort` is numeric (`1`/`2`) on `geteventlist.php` and `getresultclub.php` — not the dropdown labels.
   - `racetype`/`aktype` on `getresultclub.php` are misleadingly named (see that section).
-  - Page caps: 1000 rows on most endpoints, **4000** on `getintbestlist.php`. A wrong-looking value usually parses as "no filter" and returns the full page cap, not an error.
+  - Page caps: 1000 rows on most endpoints, **4000** on `getintbestlist.php`. A wrong-looking value may parse as "no filter", partially apply other filters, or return 0 rows without an explicit error.
 
 ## When unsure of an ID
 
