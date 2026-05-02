@@ -10,6 +10,16 @@ Reusable AI tooling repository: skills, custom agents, instruction files, and pr
 | `scripts/update-all.sh` | Helper script to install tooling globally |
 | `.github/scripts/validate.sh` | Local validation (run before committing) |
 
+## Available Skills
+
+- `code-analyzer`: read-only whole-project audit for bugs, security, quality, performance, tests, docs, and prioritized improvement ideas
+- `duv`: DUV Ultramarathon Statistics lookup workflow
+- `emu-branding`: EMU visual identity and brand guidance
+- `github-commit-pr`: commit, push, and pull request workflow
+- `github-do-issue`: implement a GitHub issue locally before commit or PR creation
+- `github-fix-action-error`: diagnose and fix the latest failing GitHub Actions run
+- `github-issues`: create, triage, label, comment on, and manage GitHub issues
+
 ## Conventions
 
 ### Skills (`skills/`)
