@@ -87,6 +87,13 @@ SKILLS=(
   "jablonkai/agent-tools|skills/github-fix-action-error"
   "jablonkai/agent-tools|skills/github-issues"
 
+  # kepano/obsidian-skills
+  "kepano/obsidian-skills|skills/defuddle"
+  "kepano/obsidian-skills|skills/json-canvas"
+  "kepano/obsidian-skills|skills/obsidian-bases"
+  "kepano/obsidian-skills|skills/obsidian-cli"
+  "kepano/obsidian-skills|skills/obsidian-markdown"
+
   # upstash/context7
   "upstash/context7|skills/find-docs"
 )
