@@ -80,6 +80,7 @@ SKILLS=(
   "github/awesome-copilot|skills/gdpr-compliant"
 
   # jablonkai/agent-tools
+  "jablonkai/agent-tools|skills/code-analyzer"
   "jablonkai/agent-tools|skills/duv"
   "jablonkai/agent-tools|skills/emu-branding"
   "jablonkai/agent-tools|skills/github-commit-pr"

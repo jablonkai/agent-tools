@@ -15,6 +15,7 @@ It is designed for:
 
 ## Available Skills
 
+- `code-analyzer`: holistic read-only project audit for bugs, security vulnerabilities, code quality issues, performance risks, missing tests, documentation gaps, and prioritized improvement ideas
 - `duv`: search and retrieve data from the DUV Ultramarathon Statistics website (statistik.d-u-v.org), including runner profiles, events, and rankings
 - `emu-branding`: brand guidelines and visual identity for EMU (Egyesület a Magyar Ultrafutásért), including logo, color palette, and typography
 - `github-commit-pr`: end-to-end workflow for committing changes, pushing a branch, and opening or updating a GitHub pull request
@@ -81,4 +82,4 @@ The validator checks:
 
 ## Status
 
-This repository currently contains a focused set of GitHub-oriented skills and the supporting validation workflow around them. The next step is to expand it only where a reusable workflow clearly exists.
+This repository currently contains a focused set of reusable workflow skills and the supporting validation workflow around them. The next step is to expand it only where a reusable workflow clearly exists.
