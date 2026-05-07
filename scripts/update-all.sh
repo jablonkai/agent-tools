@@ -53,6 +53,17 @@ SKILLS=(
   "anthropics/skills|skills/skill-creator"
   "anthropics/skills|skills/theme-factory"
 
+  # dart-lang/skills
+  "dart-lang/skills|skills/dart-add-unit-test"
+  "dart-lang/skills|skills/dart-build-cli-app"
+  "dart-lang/skills|skills/dart-collect-coverage"
+  "dart-lang/skills|skills/dart-fix-runtime-errors"
+  "dart-lang/skills|skills/dart-generate-test-mocks"
+  "dart-lang/skills|skills/dart-migrate-to-checks-package"
+  "dart-lang/skills|skills/dart-resolve-package-conflicts"
+  "dart-lang/skills|skills/dart-run-static-analysis"
+  "dart-lang/skills|skills/dart-use-pattern-matching"
+
   # firebase/agent-skills
   "firebase/agent-skills|skills/firebase-app-hosting-basics"
   "firebase/agent-skills|skills/firebase-auth-basics"

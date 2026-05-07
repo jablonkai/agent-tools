@@ -227,6 +227,12 @@ Confirmed form field names:
 
 **Page cap on this endpoint is 4000 rows**, higher than the 1000-row cap elsewhere. The unfiltered all-time list is around 15 000 entries, so you still need filters to see the tail.
 
+**The response table is self-contained — don't re-fetch what's already there.** Each row carries: rank, performance (distance or time), athlete name (linked to `getresultperson.php`), nation (IOC-3), date of birth, age category, performance date, and **event name with venue town** (linked to `getresultevent.php`). For "top-N" answers there is no need to follow each event link to `eventdetail.php` — the venue and event name are already inline. Only drill down when the user asks for a metadata field that the row doesn't carry (organizer, course notes, participant cap, etc.).
+
+**`nat=` filters by athlete nationality, not race venue.** A query like `nat=1` (Europe) returns the year's best performances by *European-passport athletes*, including ones run on non-European tracks (e.g. a French runner setting a 24 h mark in Phoenix shows up in the Europe list). For "best performances at events held in Europe", `nat=` is the wrong tool — fetch the worldwide list and filter client-side by the venue / event country, or pull `geteventlist.php` for the year+continent and aggregate from there. When the user's phrasing is ambiguous (e.g. "best women's 24 h in Europe"), name the interpretation you picked and offer the other one.
+
+**Multi-performance rows.** When an athlete has more than one ranking-eligible result in the year, DUV adds secondary rows tagged like `(2)`, `(3)` after their primary entry. These dilate the visible row count without adding distinct athletes — strip them before counting "top N runners" or you'll under-report unique names.
+
 ### `getresultclub.php` — club view
 
 ```
