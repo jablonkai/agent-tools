@@ -359,74 +359,78 @@ do_skills() {
 }
 
 do_cleanup() {
+  cleanup_skip() {
+    skip "$1" "$2" "no_summary"
+  }
+
   # npm cache cleanup
   if have npm; then
     run "npm cache clean" npm cache clean --force
   else
-    skip "npm cache clean" "npm not installed"
+    cleanup_skip "npm cache clean" "npm not installed"
   fi
 
   # pnpm cache cleanup
   if have pnpm; then
     run "pnpm store prune" pnpm store prune
   else
-    skip "pnpm store prune" "pnpm not installed"
+    cleanup_skip "pnpm store prune" "pnpm not installed"
   fi
 
   # Yarn cache cleanup
   if have yarn; then
     run "yarn cache clean" yarn cache clean
   else
-    skip "yarn cache clean" "yarn not installed"
+    cleanup_skip "yarn cache clean" "yarn not installed"
   fi
 
   # Deno cache cleanup
   if [[ -d "$HOME/.deno" ]]; then
     run "rm -rf ~/.deno" rm -rf "$HOME"/.deno
   else
-    skip "deno cache cleanup" "deno not found"
+    cleanup_skip "deno cache cleanup" "deno not found"
   fi
 
   # Bun cache cleanup
   if [[ -d "$HOME/.bun/install/cache" ]]; then
     run "rm -rf ~/.bun/install/cache" rm -rf "$HOME"/.bun/install/cache
   else
-    skip "bun cache cleanup" "bun cache not found"
+    cleanup_skip "bun cache cleanup" "bun cache not found"
   fi
 
   # Playwright cache cleanup
   if [[ -d "$HOME/.cache/ms-playwright" ]]; then
     run "rm -rf ~/.cache/ms-playwright" rm -rf "$HOME"/.cache/ms-playwright
   else
-    skip "playwright cache cleanup" "playwright cache not found"
+    cleanup_skip "playwright cache cleanup" "playwright cache not found"
   fi
 
   # pip cache cleanup
   if have pip; then
     run "pip cache purge" pip cache purge
   else
-    skip "pip cache purge" "pip not installed"
+    cleanup_skip "pip cache purge" "pip not installed"
   fi
 
   # Poetry cache cleanup
   if have poetry; then
     run "poetry cache clear" poetry cache clear --all
   else
-    skip "poetry cache clear" "poetry not installed"
+    cleanup_skip "poetry cache clear" "poetry not installed"
   fi
 
   # Gem cache cleanup
   if have gem; then
     run "gem cleanup" gem cleanup
   else
-    skip "gem cleanup" "gem not installed"
+    cleanup_skip "gem cleanup" "gem not installed"
   fi
 
   # Maven cache cleanup
   if [[ -d "$HOME/.m2/repository" ]]; then
     run "rm -rf ~/.m2/repository" rm -rf "$HOME"/.m2/repository
   else
-    skip "maven cache cleanup" "maven cache not found"
+    cleanup_skip "maven cache cleanup" "maven cache not found"
   fi
 
   # Gradle cache cleanup
@@ -437,84 +441,84 @@ do_cleanup() {
     fi
     run "rm -rf ~/.gradle/caches" rm -rf "$HOME"/.gradle/caches
   else
-    skip "gradle cache cleanup" "gradle cache not found"
+    cleanup_skip "gradle cache cleanup" "gradle cache not found"
   fi
 
   # Cargo cache cleanup
   if [[ -d "$HOME/.cargo/registry/cache" ]]; then
     run "rm -rf ~/.cargo/registry/cache" rm -rf "$HOME"/.cargo/registry/cache
   else
-    skip "cargo cache cleanup" "cargo cache not found"
+    cleanup_skip "cargo cache cleanup" "cargo cache not found"
   fi
 
   # Go cache cleanup
   if [[ -d "$HOME/.cache/go-build" ]]; then
     run "rm -rf ~/.cache/go-build" rm -rf "$HOME"/.cache/go-build
   else
-    skip "go cache cleanup" "go cache not found"
+    cleanup_skip "go cache cleanup" "go cache not found"
   fi
 
   # CocoaPods cache cleanup
   if [[ -d "$HOME/.cocoapods/repos" ]]; then
     run "rm -rf ~/.cocoapods/repos" rm -rf "$HOME"/.cocoapods/repos
   else
-    skip "cocoapods cache cleanup" "cocoapods not found"
+    cleanup_skip "cocoapods cache cleanup" "cocoapods not found"
   fi
 
   # Xcode Derived Data cleanup
   if [[ -d "$HOME/Library/Developer/Xcode/DerivedData" ]]; then
     run "rm -rf ~/Library/Developer/Xcode/DerivedData" rm -rf "$HOME"/Library/Developer/Xcode/DerivedData
   else
-    skip "xcode derived data cleanup" "xcode not found"
+    cleanup_skip "xcode derived data cleanup" "xcode not found"
   fi
 
   # .NET cache cleanup
   if have dotnet; then
     run "dotnet nuget locals all --clear" dotnet nuget locals all --clear
   else
-    skip "dotnet cache cleanup" "dotnet not installed"
+    cleanup_skip "dotnet cache cleanup" "dotnet not installed"
   fi
 
   # SwiftPM cache cleanup
   if [[ -d "$HOME/.swiftpm" ]]; then
     run "rm -rf ~/.swiftpm" rm -rf "$HOME"/.swiftpm
   else
-    skip "swiftpm cache cleanup" "swiftpm not found"
+    cleanup_skip "swiftpm cache cleanup" "swiftpm not found"
   fi
 
   # JetBrains IDE caches cleanup
   if [[ -d "$HOME/.cache/JetBrains" ]]; then
     run "rm -rf ~/.cache/JetBrains" rm -rf "$HOME"/.cache/JetBrains
   else
-    skip "jetbrains cache cleanup" "jetbrains cache not found"
+    cleanup_skip "jetbrains cache cleanup" "jetbrains cache not found"
   fi
 
   # Android Studio cache cleanup
   if [[ -d "$HOME/Library/Caches/Google" ]]; then
     run "rm -rf ~/Library/Caches/Google/AndroidStudio*" rm -rf "$HOME"/Library/Caches/Google/AndroidStudio*
   else
-    skip "android studio cache cleanup" "android studio not found"
+    cleanup_skip "android studio cache cleanup" "android studio not found"
   fi
 
   # Bazel cache cleanup
   if [[ -d "$HOME/.bazel" ]]; then
     run "rm -rf ~/.bazel" rm -rf "$HOME"/.bazel
   else
-    skip "bazel cache cleanup" "bazel not found"
+    cleanup_skip "bazel cache cleanup" "bazel not found"
   fi
 
   # Pants cache cleanup
   if [[ -d "$HOME/.cache/pants" ]]; then
     run "rm -rf ~/.cache/pants" rm -rf "$HOME"/.cache/pants
   else
-    skip "pants cache cleanup" "pants not found"
+    cleanup_skip "pants cache cleanup" "pants not found"
   fi
 
   # Docker cache cleanup
   if have docker; then
     run "docker system prune -f" docker system prune -f
   else
-    skip "docker system prune" "docker not installed"
+    cleanup_skip "docker system prune" "docker not installed"
   fi
 
   # Library/Caches cleanup
