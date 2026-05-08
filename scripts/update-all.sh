@@ -26,9 +26,10 @@ SKILL_TARGETS=(
 # Android skills — installed via the `android` CLI (see do_android_skills).
 # These go into the same targets as SKILL_TARGETS, used as-is.
 ANDROID_SKILLS=(
+  "android-cli"
+  "edge-to-edge"
   "navigation-3"
   "r8-analyzer"
-  "edge-to-edge"
 )
 
 # Maps each supported target name to its on-disk skills directory.
