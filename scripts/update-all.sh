@@ -232,7 +232,7 @@ do_brew() {
     # --verbose so fetched taps / up-to-date lines are always visible.
     run "brew update"  brew update --verbose
     run "brew upgrade" brew upgrade --verbose
-    run "brew cleanup" brew cleanup
+    run "brew cleanup --prune" brew cleanup --prune=all
   else
     skip "brew" "not installed"
   fi
@@ -515,13 +515,6 @@ do_cleanup() {
     run "docker system prune -f" docker system prune -f
   else
     skip "docker system prune" "docker not installed"
-  fi
-
-  # Brew cleanup
-  if have brew; then
-    run "brew cleanup --prune" brew cleanup --prune=all
-  else
-    skip "brew cleanup" "brew not installed"
   fi
 
   # Library/Caches cleanup
