@@ -54,6 +54,24 @@ SKILLS=(
   "anthropics/skills|skills/skill-creator"
   "anthropics/skills|skills/theme-factory"
 
+  # chrisbanes/skills
+  "chrisbanes/skills|skills/compose-animations"
+  "chrisbanes/skills|skills/compose-focus-navigation"
+  "chrisbanes/skills|skills/compose-modifier-and-layout-style"
+  "chrisbanes/skills|skills/compose-recomposition-performance"
+  "chrisbanes/skills|skills/compose-side-effects"
+  "chrisbanes/skills|skills/compose-slot-api-pattern"
+  "chrisbanes/skills|skills/compose-stability-diagnostics"
+  "chrisbanes/skills|skills/compose-state-authoring"
+  "chrisbanes/skills|skills/compose-state-deferred-reads"
+  "chrisbanes/skills|skills/compose-state-holder-ui-split"
+  "chrisbanes/skills|skills/compose-state-hoisting"
+  "chrisbanes/skills|skills/compose-ui-testing-patterns"
+  "chrisbanes/skills|skills/kotlin-coroutines-structured-concurrency"
+  "chrisbanes/skills|skills/kotlin-flow-state-event-modeling"
+  "chrisbanes/skills|skills/kotlin-multiplatform-expect-actual"
+  "chrisbanes/skills|skills/kotlin-types-value-class"
+
   # dart-lang/skills
   "dart-lang/skills|skills/dart-add-unit-test"
   "dart-lang/skills|skills/dart-build-cli-app"
@@ -90,6 +108,21 @@ SKILLS=(
   "github/awesome-copilot|skills/gh-cli"
   "github/awesome-copilot|skills/draw-io-diagram-generator"
   "github/awesome-copilot|skills/gdpr-compliant"
+
+  # heygen-com/hyperframes
+  "heygen-com/hyperframes|skills/animejs"
+  "heygen-com/hyperframes|skills/css-animations"
+  "heygen-com/hyperframes|skills/gsap"
+  "heygen-com/hyperframes|skills/hyperframes"
+  "heygen-com/hyperframes|skills/hyperframes-cli"
+  "heygen-com/hyperframes|skills/hyperframes-media"
+  "heygen-com/hyperframes|skills/hyperframes-registry"
+  "heygen-com/hyperframes|skills/lottie"
+  "heygen-com/hyperframes|skills/remotion-to-hyperframes"
+  "heygen-com/hyperframes|skills/tailwind"
+  "heygen-com/hyperframes|skills/three"
+  "heygen-com/hyperframes|skills/waapi"
+  "heygen-com/hyperframes|skills/website-to-hyperframes"
 
   # jablonkai/agent-tools
   "jablonkai/agent-tools|skills/code-analyzer"
