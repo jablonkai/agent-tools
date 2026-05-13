@@ -40,10 +40,12 @@ There are currently no custom agents in the `agents/` directory.
 The `update-all` workflow installs skills from several upstream sources, including:
 
 - `anthropics/skills`
+- `chrisbanes/skills`
 - `dart-lang/skills`
 - `firebase/agent-skills`
 - `flutter/skills`
 - `github/awesome-copilot`
+- `heygen-com/hyperframes`
 - `jablonkai/agent-tools`
 - `kepano/obsidian-skills`
 - `upstash/context7`
