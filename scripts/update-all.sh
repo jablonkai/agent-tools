@@ -297,8 +297,8 @@ do_android_skills() {
 
   local skill
   for skill in "${ANDROID_SKILLS[@]}"; do
-    run "android skills add --skill $skill → $agents" \
-      android skills add --skill "$skill" --agent "$agents"
+    run "android skills add $skill → $agents" \
+      android skills add "$skill" --agent="$agents"
   done
 }
 
