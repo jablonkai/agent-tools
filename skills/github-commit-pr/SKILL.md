@@ -147,13 +147,9 @@ git commit -m "$(cat <<'EOF'
 <type>: <summary>
 
 <optional body>
-
-Co-authored-by: Author Name <author@example.com>
 EOF
 )"
 ```
-
-The `Co-authored-by` trailer credits AI assistance in the commit history, helping teams track which commits had AI involvement. Use the user's git identity as the commit author and add a `Co-authored-by` for the AI agent. The specific name and email depend on the environment (e.g., `GitHub Copilot <copilot@github.com>` or `Claude <claude@anthropic.com>`). If the AI identity is not known, omit the trailer rather than fabricating one.
 
 If the commit fails due to a pre-commit hook, read the hook output, fix the issue, re-stage, and create a NEW commit (do not amend).
 
@@ -268,14 +264,10 @@ Same conventions as New PR flow Step 3.
 git add -A
 git commit -m "$(cat <<'EOF'
 <type>: <summary>
-
-Co-authored-by: Author Name <author@example.com>
 EOF
 )"
 git push
 ```
-
-Same `Co-authored-by` approach as New PR flow Step 5 — use the AI agent's known identity or omit if unknown.
 
 If the commit fails due to a pre-commit hook, fix the issue and create a NEW commit (do not amend).
 
@@ -341,6 +333,5 @@ These boundaries protect the user's repository and team workflow:
 - If any step fails, stop and report the error — do not continue blindly, because later steps depend on earlier ones succeeding
 - Use `git add -A` for staging (full-change commit flow), but only after the sensitive file check passes
 - The PR body must reflect the actual changes from the diff, not boilerplate — reviewers rely on it to understand the change
-- Add a `Co-authored-by` trailer for the AI agent when its identity is known (e.g., `GitHub Copilot <copilot@github.com>`); omit it rather than guessing — see the note in Step 5 for details
 - Issue closing keywords (`Closes #N`) go in the PR body, not in the commit message — GitHub only processes closing keywords from the PR body on the default branch
 - When pushing to an existing PR, do not modify the PR title or body — only push the new commit
