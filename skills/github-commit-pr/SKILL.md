@@ -1,29 +1,34 @@
 ---
-name: github-commit-pr
-description: "Commit changes, create a feature branch, and open a GitHub pull request — or push new commits to an existing PR. Use whenever someone says 'commit and push', 'create a PR', 'open a pull request', 'send for review', 'push my changes', or is done with their work and ready to submit it. Also triggers for 'commitold be', 'nyiss PR-t', or any variation of wanting to get changes into a pull request. Handles conventional commit messages, issue linking with auto-close keywords (Closes #N), sensitive file detection, and PR template integration."
+allowed-tools: Bash, Read, Grep, Glob
+argument-hint: '[<base-branch>] [--issue <number>] [--no-merge]'
 category: git
+description: 'Commit changes, create a feature branch, open a GitHub pull request, wait for CI, and merge the PR once GitHub Actions go green — or push new commits to an existing PR and merge after CI succeeds. Use whenever someone says ''commit and push'', ''create a PR'', ''open a pull request'', ''send for review'', ''push my changes'', ''merge when CI passes'', or is done with their work and ready to ship it. Also triggers for ''commitold be'', ''nyiss PR-t'', ''mergeld ha zöld a CI'', or any variation of wanting to get changes into a pull request and landed. Handles conventional commit messages, issue linking with auto-close keywords (Closes #N), sensitive file detection, PR template integration, and auto-merge with branch cleanup.'
+metadata:
+    github-path: skills/github-commit-pr
+    github-ref: refs/heads/main
+    github-repo: https://github.com/jablonkai/agent-tools
+    github-tree-sha: 225890dce3e11154c2039fcfb720ca904827ce86
+name: github-commit-pr
 risk: low
 tags:
-  - git
-  - github
-  - pull-request
-  - commit
-  - branch
-allowed-tools: Bash, Read, Grep, Glob
-argument-hint: "[<base-branch>] [--issue <number>]"
+    - git
+    - github
+    - pull-request
+    - commit
+    - branch
 ---
-
 # github-commit-pr
 
 ## Purpose
 
-End-to-end workflow for committing changes and creating or updating a GitHub pull request. Supports issue linking with auto-close keywords, conventional commit messages, and pushing new commits to existing PRs.
+End-to-end workflow for committing changes, creating or updating a GitHub pull request, watching CI, and merging the PR once GitHub Actions succeed. Supports issue linking with auto-close keywords, conventional commit messages, pushing new commits to existing PRs, and post-CI auto-merge with branch cleanup.
 
 ## When to use
 
-- Committing changes and opening a new PR
-- Pushing additional commits to an existing PR branch
+- Committing changes, opening a new PR, and landing it once CI is green
+- Pushing additional commits to an existing PR branch and merging after CI passes
 - Creating PRs that reference and auto-close GitHub issues
+- Skip the merge step by passing `--no-merge` when you want a human to review before the PR lands
 
 ## Pre-flight checks
 
@@ -235,9 +240,64 @@ gh run watch $(gh run list --branch <branch-name> --limit 1 --json databaseId --
 - If the run **succeeds** → continue to Step 10.
 - If the run **fails** → invoke the `github-fix-action-error` skill to diagnose and fix the failure, then (after the fix is committed and pushed) re-watch the new run. Repeat until the build is green or the user aborts.
 
-### Step 10: Report
+### Step 10: Merge the PR
 
-Output the PR URL and the final CI status.
+CI is green — the user's intent in invoking this skill is to land the change, so proceed to merge unless `--no-merge` was passed in `$ARGUMENTS`. If `--no-merge` is set, skip to Step 11.
+
+Merging is a shared-state action visible to collaborators, and it's effectively irreversible (revert PRs are possible but messy), so confirm with the user once before doing it — keep the prompt short, since they already opted in by invoking this skill.
+
+#### Step 10a: Verify mergeability
+
+```bash
+gh pr view --json number,mergeable,mergeStateStatus,reviewDecision
+```
+
+Interpret the result:
+
+- `mergeable: MERGEABLE` and `mergeStateStatus: CLEAN` → ready to merge
+- `mergeStateStatus: HAS_HOOKS` → ready (post-merge hooks will run, that's fine)
+- `mergeStateStatus: BLOCKED` → branch protection blocks the merge (e.g., required reviewers, required signed commits, code owner review). Report which gate is blocking and stop — do not bypass with `--admin` unless the user explicitly asks
+- `mergeStateStatus: BEHIND` → base branch moved forward and the repo requires an up-to-date branch. Offer `gh pr update-branch <number>` and re-watch CI afterward
+- `mergeable: CONFLICTING` → conflicts with the base branch. Stop and ask the user to resolve manually
+- `mergeStateStatus: UNSTABLE` → required checks haven't completed even though our watched run passed. Investigate which check is pending before merging
+- `reviewDecision: CHANGES_REQUESTED` → at least one reviewer has requested changes. Stop and let the user address the review
+
+#### Step 10b: Choose a merge strategy
+
+Read the repo's allowed strategies so the chosen flag will actually work:
+
+```bash
+gh repo view --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed
+```
+
+Preference order: `--squash` (cleanest history for feature PRs), then `--merge`, then `--rebase`. Pick the first one that's allowed. The skill exists to land PRs cleanly, so squash is the right default — but never pick a strategy the repo doesn't permit, or `gh pr merge` will reject it.
+
+#### Step 10c: Confirm and merge
+
+Tell the user concisely what you're about to do and ask once for confirmation:
+
+> "CI is green. Merge PR #<number> with `--squash` and delete the branch? (y/n)"
+
+If the user declines, skip to Step 11 and just report. If they confirm:
+
+```bash
+gh pr merge <number> --<strategy> --delete-branch
+```
+
+Notes:
+
+- `--delete-branch` removes both the local and remote branch after merge — this is the usual cleanup, but skip the flag if the user objects.
+- If the merge command fails because of branch protection (e.g., 405 method not allowed, "Pull Request is not mergeable"), surface the error and stop. Do not retry with `--admin` unless explicitly asked.
+- If `gh pr merge` succeeds, the local branch is gone; subsequent `git` commands should not assume it still exists. Switch back to the base branch and pull:
+
+```bash
+git checkout <base-branch>
+git pull
+```
+
+### Step 11: Report
+
+Output the PR URL, the final CI status, and the merge outcome (merged via squash / merge skipped per --no-merge / merge blocked by ...).
 
 ## Push to existing PR flow
 
@@ -292,15 +352,26 @@ gh run watch $(gh run list --branch "$(git branch --show-current)" --limit 1 --j
 - If the run **succeeds** → continue to Step 6.
 - If the run **fails** → invoke the `github-fix-action-error` skill to diagnose and fix the failure, then (after the fix is committed and pushed) re-watch the new run. Repeat until the build is green or the user aborts.
 
-### Step 6: Report
+### Step 6: Merge the PR
 
-Show the existing PR URL, the new commit summary, and the final CI status:
+Same flow as **New PR flow → Step 10**. Skip this step if `--no-merge` was passed in `$ARGUMENTS`.
+
+1. Verify mergeability with `gh pr view --json mergeable,mergeStateStatus,reviewDecision` — only proceed when the PR is `MERGEABLE` and `CLEAN` (or `HAS_HOOKS`). Stop on `BLOCKED`, `BEHIND`, `CONFLICTING`, `UNSTABLE`, or `CHANGES_REQUESTED`.
+2. Pick a strategy allowed by the repo (`gh repo view --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed`). Prefer `--squash` → `--merge` → `--rebase`.
+3. Ask the user once: "CI is green. Merge PR #<number> with `--squash` and delete the branch? (y/n)"
+4. On confirmation: `gh pr merge <number> --<strategy> --delete-branch`, then `git checkout <base-branch> && git pull`.
+5. If branch protection blocks the merge, report the gate and stop — do not use `--admin` unless the user explicitly asks.
+
+### Step 7: Report
+
+Show the existing PR URL, the new commit summary, the final CI status, and the merge outcome:
 
 ```
 Pushed to PR #<number>: <pr-title>
 New commit: <type>: <summary>
 URL: <pr-url>
 CI: <success|fixed after N attempts>
+Merge: <merged via squash|skipped per --no-merge|blocked by required reviewers|declined by user>
 ```
 
 Do NOT create a new PR — just push to the existing one.
@@ -321,6 +392,12 @@ Do NOT modify the PR title or body.
 | PR creation fails | `gh pr create` exits non-zero | Report error (branch protection, permissions) |
 | Remote ahead (push fails) | `git push` rejected, non-fast-forward | `git pull --rebase`, then retry push |
 | Rebase conflicts | `git pull --rebase` has conflicts | Stop and report, do not auto-resolve |
+| Merge blocked by branch protection | `mergeStateStatus: BLOCKED`, or `gh pr merge` exits non-zero with 405 / "not mergeable" | Report which gate is blocking (required reviewers, code owner, signed commits, etc.) and stop — do not bypass with `--admin` unless asked |
+| Branch is BEHIND base | `mergeStateStatus: BEHIND` | Offer `gh pr update-branch <number>`, re-watch CI, then retry merge |
+| Merge conflicts with base | `mergeable: CONFLICTING` | Stop and ask user to resolve manually |
+| Changes requested on PR | `reviewDecision: CHANGES_REQUESTED` | Stop and let the user address the review before merging |
+| Required check still pending | `mergeStateStatus: UNSTABLE` after our watched run passed | Investigate the pending check (likely a separate required workflow); do not merge until it lands |
+| User declines merge confirmation | User answers "n" to merge prompt | Skip merge, report PR URL and CI status, exit cleanly |
 
 ## Constraints
 
@@ -335,3 +412,7 @@ These boundaries protect the user's repository and team workflow:
 - The PR body must reflect the actual changes from the diff, not boilerplate — reviewers rely on it to understand the change
 - Issue closing keywords (`Closes #N`) go in the PR body, not in the commit message — GitHub only processes closing keywords from the PR body on the default branch
 - When pushing to an existing PR, do not modify the PR title or body — only push the new commit
+- Do not merge a PR until the watched GitHub Actions run has actually finished green — `gh run watch --exit-status` is the gate, never trust an in-flight or pending status
+- Always confirm with the user once before merging — merging is shared state, visible to collaborators, and reverts are messy; the confirmation is the user's final chance to pause
+- Do not use `gh pr merge --admin` to bypass branch protection unless the user explicitly asks — protection rules exist to enforce review and quality gates, and bypassing them silently undermines the team's process
+- Respect `--no-merge` in `$ARGUMENTS` — when set, push and report but never call `gh pr merge`, so the user can hand the PR off for human review

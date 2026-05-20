@@ -26,10 +26,17 @@ SKILL_TARGETS=(
 # Android skills — installed via the `android` CLI (see do_android_skills).
 # These go into the same targets as SKILL_TARGETS, used as-is.
 ANDROID_SKILLS=(
+  "adaptive"
   "android-cli"
+  "appfunctions"
   "edge-to-edge"
   "navigation-3"
+  "perfetto-sql"
+  "perfetto-trace-analysis"
   "r8-analyzer"
+  "styles"
+  "testing-setup"
+  "verified-email"
 )
 
 # Maps each supported target name to its on-disk skills directory.
