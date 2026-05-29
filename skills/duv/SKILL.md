@@ -11,7 +11,7 @@ The DUV (Deutsche Ultramarathon-Vereinigung) statistics site at `https://statist
 
 Parameter names and values were verified against the live HTML forms — neither is always what the on-screen label suggests (e.g. the "country" dropdown on rankings posts as `nat`, not `country`; the "F" option posts as `W`). When in doubt, fetch the page and grep for `name='...'` inside `<select>`/`<input>` elements, and pull `<option value='...'>` to see the exact tokens.
 
-**Silent-filter failure warning.** Passing a value the backend doesn't recognise usually does not raise an error. Depending on the endpoint and parameter, DUV may return 0 rows, drop only that filter, or fall back to a broader result set up to a hard row cap (1000 rows on most endpoints, 4000 on `getintbestlist.php`). That's why the exact tokens below matter: a wrong-looking result is often a bad parameter, not a shortage of data. When in doubt, vary one parameter and watch the result count and page heading change.
+**Bad-parameter failure warning.** Passing a value the backend doesn't recognise is not consistently handled. Depending on the endpoint and parameter, DUV may return a tiny `Error - Invalid input: '<value>'` page, return 0 rows, drop only that filter, or fall back to a broader result set up to a hard row cap (1000 rows on most endpoints, 4000 on `getintbestlist.php`). That's why the exact tokens below matter: a wrong-looking result is often a bad parameter, not a shortage of data. When in doubt, vary one parameter and watch the result count and page heading change.
 
 ## Core URL patterns
 
@@ -57,7 +57,7 @@ The labels shown in the dropdown (`World`, `Europe`, …) are **not** valid valu
 
 ### Distance (`dist`)
 
-One shared vocabulary across `geteventlist.php`, `getintbestlist.php`, and `calendar.php`. Values are **compact, no spaces, no `+`** — e.g. `100km`, not `100 km` or `100+km`. Bad distance tokens can produce 0 rows or a broader/odd-looking page heading.
+One shared vocabulary across `geteventlist.php`, `getintbestlist.php`, and `calendar.php`. Values are **compact, no spaces, no `+`** — e.g. `100km`, not `100 km` or `100+km`. Bad distance tokens can produce an explicit invalid-input page, 0 rows, or a broader/odd-looking page heading.
 
 - Fixed distances: `50km`, `50mi`, `100km`, `100mi`
 - Time-limited: `6h`, `12h`, `24h`, `48h`, `72h`, `6d`, `10d`
@@ -67,7 +67,7 @@ One shared vocabulary across `geteventlist.php`, `getintbestlist.php`, and `cale
 
 ### Race surface (`surface` on `geteventlist.php`; `dist` slot on `calendar.php`)
 
-Case-sensitive, truncated tokens exactly as they appear in the form dropdown. Common full-word variants (`road`, `trail`, `indoor`, `elimination`, `backyard`, `walking`) are NOT recognised and may be ignored or return 0 rows. `getresultclub.php` has *no* surface filter — its `racetype` param is something else entirely (see that section).
+Case-sensitive, truncated tokens exactly as they appear in the form dropdown. Common full-word variants (`road`, `trail`, `indoor`, `elimination`, `backyard`, `walking`) are NOT recognised and may return `Error - Invalid input`, be ignored, or return 0 rows. `getresultclub.php` has *no* surface filter — its `racetype` param is something else entirely (see that section).
 
 - `Road` — road race
 - `Trail`
@@ -203,6 +203,10 @@ Use `calendar.php` — **not** `geteventlist.php` — whenever the user asks abo
 
 Result table columns: **Date | Event | Distance/Duration | Venue (Country) | Status | IAU-Label | Results**. The "Results" column links to `getresultevent.php?event=<id>` for completed events; pre-race / upcoming events link to `eventdetail.php?event=<id>` instead. Use `eventdetail.php` for richer race metadata.
 
+**Date windows need client-side filtering.** `calendar.php` has broad `year` modes but no exact `from`/`to` date filters. For requests like "next 30 days", "next year", or "between June and August", fetch a broad calendar set (`year=futur` or the relevant specific years), parse the row's start date, and filter locally to the requested window. State the cutoff you used. `year=futur` means "all future from today", not "the next 12 months".
+
+Calendar dates can be single dates (`29.05.2026`) or ranges (`13.-14.06.2026`, `30.10.-02.11.2026`). Use the start date for window filtering, and keep the raw DUV date string in the answer if the range is awkward or appears inconsistent.
+
 Result count is stated inline as `1 to N of M search results` — there is no pagination, so if `N < M` you need to narrow filters. In practice the hard cap is the same 1000-row ceiling as elsewhere on the site.
 
 **Submit.x / Submit.y in pasted URLs.** When a user pastes a calendar URL from their browser you'll often see `Submit.x=<n>&Submit.y=<n>` tacked on — those are the pixel coordinates of the click on the form's image submit button and carry no filter meaning. Drop them when scripting; keeping them doesn't hurt but adds noise.
@@ -272,11 +276,11 @@ For scripted use, `getresultperson.php` + `searchrunner.php` per name is usually
 - If a param you expect isn't filtering, fetch the page and check both the `name='...'` attribute *and* the `<option value='...'>` text in the form HTML — param names *and* value tokens both diverge from user-facing labels. Recurring traps:
   - `nat` vs "Country" on rankings; the worldwide value is `all`, not `World`; continents are numeric `1`–`6`, not their English names.
   - `gender=W` (not `F`) for the women's list.
-  - `surface=Indoo` / `Backy` / `Elim` / `Walk` (5-char truncation, case-sensitive) — full lowercase words fail or get ignored.
+  - `surface=Indoo` / `Backy` / `Elim` / `Walk` (5-char truncation, case-sensitive) — full words like `Backyard` can fail with `Error - Invalid input`, and lowercase words can fail or get ignored.
   - `label` value differs by endpoint: `Y` on `geteventlist.php`, `IAU` on `getintbestlist.php`.
   - `sort` is numeric (`1`/`2`) on `geteventlist.php` and `getresultclub.php` — not the dropdown labels.
   - `racetype`/`aktype` on `getresultclub.php` are misleadingly named (see that section).
-  - Page caps: 1000 rows on most endpoints, **4000** on `getintbestlist.php`. A wrong-looking value may parse as "no filter", partially apply other filters, or return 0 rows without an explicit error.
+  - Page caps: 1000 rows on most endpoints, **4000** on `getintbestlist.php`. A wrong-looking value may parse as "no filter", partially apply other filters, return 0 rows, or produce a short invalid-input page.
 
 ## When unsure of an ID
 

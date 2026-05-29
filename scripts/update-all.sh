@@ -168,6 +168,7 @@ RESET=$'\033[0m'
 C_HOMEBREW=$'\033[38;5;215m'   # amber/orange
 C_ANDROID=$'\033[38;5;41m'     # green (#3DDC84)
 C_FLUTTER=$'\033[38;5;39m'     # blue (#13B9FD)
+C_SDKMAN=$'\033[38;5;99m'      # violet (Kotlin #7F52FF)
 C_RUST=$'\033[38;5;166m'       # rust orange (#CE422B)
 C_PYTHON=$'\033[38;5;220m'     # python yellow
 C_GITHUB=$'\033[38;5;141m'     # purple/violet
@@ -184,6 +185,7 @@ STEPS=(
   "android|C_ANDROID|Android CLI: update"
   "android-skills|C_ANDROID|Android skills: install/update via android skills add"
   "flutter|C_FLUTTER|Flutter: upgrade"
+  "sdk|C_SDKMAN|SDKMAN: selfupdate + update + upgrade + install kotlintoolchain"
   "rust|C_RUST|Rust toolchain: rustup update"
   "pipx|C_PYTHON|pipx: upgrade all packages"
   "gh-ext|C_GITHUB|GitHub CLI extensions: upgrade all"
@@ -315,6 +317,40 @@ do_flutter() {
   else
     skip "flutter" "not installed"
   fi
+}
+
+do_sdk() {
+  local init="$HOME/.sdkman/bin/sdkman-init.sh"
+  if [[ ! -s "$init" ]]; then
+    skip "sdk" "SDKMAN not installed"
+    return
+  fi
+
+  # `sdk` is a shell function provided by SDKMAN's init script, not a binary,
+  # so source it before use (the `have` check wouldn't find it otherwise).
+  # SDKMAN's init and subcommand scripts reference unset vars (e.g.
+  # $ZSH_VERSION), which abort under `set -u`. Relax nounset for the whole
+  # SDKMAN section and restore it before returning.
+  set +u
+  # shellcheck disable=SC1090
+  source "$init"
+  if ! declare -F sdk >/dev/null; then
+    set -u
+    skip "sdk" "SDKMAN init did not provide the sdk function"
+    return
+  fi
+
+  # SDKMAN re-sources etc/config (sdkman_auto_answer=false) on every `sdk`
+  # call, so an env override won't stick. Feed `yes` on stdin instead so any
+  # confirmation prompt is auto-accepted and the step runs unattended.
+  sdk_auto() { yes 2>/dev/null | sdk "$@"; }
+
+  run "sdk selfupdate"              sdk_auto selfupdate          # update SDKMAN itself
+  run "sdk update"                  sdk_auto update              # refresh candidate metadata
+  run "sdk upgrade"                 sdk_auto upgrade             # upgrade all installed candidates
+  run "sdk install kotlintoolchain" sdk_auto install kotlintoolchain
+
+  set -u
 }
 
 do_rust() {
