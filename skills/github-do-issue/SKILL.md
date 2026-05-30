@@ -28,15 +28,7 @@ Structured workflow for implementing a GitHub issue in any project. Fetch the is
 
 Before starting, verify the environment:
 
-1. **Authentication:**
-
-```bash
-gh auth status
-```
-
-If `gh` is not installed, direct the user to https://cli.github.com. If not authenticated, instruct the user to run `gh auth login`.
-
-2. **Repository context:**
+1. **Repository context:**
 
 ```bash
 git rev-parse --show-toplevel
@@ -168,7 +160,6 @@ Ready for review.
 | Scenario | Detection | Action |
 |----------|-----------|--------|
 | `gh` not installed | `command -v gh` fails | Direct user to https://cli.github.com |
-| Not authenticated | `gh auth status` exits non-zero | Instruct user to run `gh auth login` |
 | Not in a git repo | `git rev-parse` fails | Abort with clear message |
 | Issue not found | `gh issue view` exits non-zero | Verify issue number and repo |
 | Permission denied | `gh` returns 403/404 | Check repo access and auth scopes |
