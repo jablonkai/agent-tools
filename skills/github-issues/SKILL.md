@@ -23,15 +23,7 @@ Standardize GitHub issue creation and management across any project. Ensure ever
 
 Before any operation, verify the environment:
 
-1. **Check `gh` CLI is available and authenticated:**
-
-```bash
-gh auth status
-```
-
-If not installed, direct the user to https://cli.github.com. If not authenticated, instruct the user to run `gh auth login`.
-
-2. **Detect repository context:**
+1. **Detect repository context:**
 
 ```bash
 git remote get-url origin
@@ -357,7 +349,6 @@ If `--label <label>` is specified in the arguments, add `--label "<label>"` to f
 | Scenario | Detection | Action |
 |----------|-----------|--------|
 | `gh` not installed | `command -v gh` fails | Direct user to https://cli.github.com |
-| Not authenticated | `gh auth status` exits non-zero | Instruct user to run `gh auth login` |
 | Not in a git repo | `git rev-parse --show-toplevel` fails | Ask user for `owner/repo` manually |
 | No remote configured | `git remote get-url origin` fails | Ask user for `owner/repo` manually |
 | Issue not found | `gh issue view` exits non-zero | Verify the issue number and repository |

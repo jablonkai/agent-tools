@@ -28,15 +28,7 @@ Close the loop between a red CI run and a green one. The skill identifies the mo
 
 Verify the environment before doing anything else:
 
-1. **GitHub CLI available and authenticated**
-
-```bash
-gh auth status
-```
-
-If `gh` is not installed, direct the user to https://cli.github.com. If not authenticated, instruct them to run `gh auth login`.
-
-2. **Inside a git repository**
+1. **Inside a git repository**
 
 ```bash
 git rev-parse --show-toplevel
@@ -44,7 +36,7 @@ git rev-parse --show-toplevel
 
 If not, abort with a clear message.
 
-3. **Clean-enough working tree**
+2. **Clean-enough working tree**
 
 ```bash
 git status --porcelain
@@ -194,7 +186,6 @@ Do not poll CI yourself unless the user asks — the push is the hand-off.
 | Scenario | Detection | Action |
 |----------|-----------|--------|
 | `gh` not installed | `command -v gh` fails | Direct user to https://cli.github.com |
-| Not authenticated | `gh auth status` non-zero | Instruct `gh auth login` |
 | Not in a git repo | `git rev-parse` fails | Abort with clear message |
 | Protected branch | branch is main/master/develop | Refuse and stop (Step 1) |
 | Dirty working tree | `git status --porcelain` non-empty | Show changes, ask whether to proceed |

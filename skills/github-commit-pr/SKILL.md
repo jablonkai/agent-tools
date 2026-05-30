@@ -34,15 +34,7 @@ End-to-end workflow for committing changes, creating or updating a GitHub pull r
 
 Run these checks before any operation:
 
-1. **Authentication:**
-
-```bash
-gh auth status
-```
-
-If `gh` is not installed, direct the user to https://cli.github.com. If not authenticated, instruct the user to run `gh auth login` and stop.
-
-2. **Working tree status:**
+1. **Working tree status:**
 
 ```bash
 git status
@@ -50,13 +42,13 @@ git status
 
 If there are no changes (nothing to commit), abort unless the user explicitly wants to create a PR from existing unpushed commits.
 
-3. **Current branch:**
+2. **Current branch:**
 
 ```bash
 git branch --show-current
 ```
 
-4. **Base branch detection:**
+3. **Base branch detection:**
 
 Determine the repository's default branch:
 
@@ -382,7 +374,6 @@ Do NOT modify the PR title or body.
 | Scenario | Detection | Action |
 |----------|-----------|--------|
 | `gh` not installed | `command -v gh` fails | Direct user to https://cli.github.com |
-| Not authenticated | `gh auth status` exits non-zero | Instruct user to run `gh auth login` |
 | Not in a git repo | `git rev-parse --show-toplevel` fails | Abort with clear message |
 | No changes to commit | `git status` shows clean tree | Abort unless PR from existing commits |
 | Sensitive files detected | Pattern match on `git status` output | Warn user, ask to exclude before staging |
