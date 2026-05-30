@@ -147,6 +147,27 @@ SKILLS=(
   "kepano/obsidian-skills|skills/obsidian-cli"
   "kepano/obsidian-skills|skills/obsidian-markdown"
 
+  # PicsArt/gen-ai-skills
+  "PicsArt/gen-ai-skills|skills/agency-brand-scoping"
+  "PicsArt/gen-ai-skills|skills/agency-client-handoff"
+  "PicsArt/gen-ai-skills|skills/agency-multi-brand-pack"
+  "PicsArt/gen-ai-skills|skills/agency-pitch-mockups"
+  "PicsArt/gen-ai-skills|skills/dev-app-assets"
+  "PicsArt/gen-ai-skills|skills/dev-avatar-service"
+  "PicsArt/gen-ai-skills|skills/dev-screenshot-beautifier"
+  "PicsArt/gen-ai-skills|skills/enterprise-brand-governor"
+  "PicsArt/gen-ai-skills|skills/enterprise-pinned-registry"
+  "PicsArt/gen-ai-skills|skills/enterprise-press-batch"
+  "PicsArt/gen-ai-skills|skills/gen-ai-explainer"
+  "PicsArt/gen-ai-skills|skills/gen-ai-persona-creation"
+  "PicsArt/gen-ai-skills|skills/gen-ai-use"
+  "PicsArt/gen-ai-skills|skills/marketer-ad-variant-factory"
+  "PicsArt/gen-ai-skills|skills/marketer-localize-campaign"
+  "PicsArt/gen-ai-skills|skills/multi-channel-bundle"
+  "PicsArt/gen-ai-skills|skills/product-photo-studio"
+  "PicsArt/gen-ai-skills|skills/prosumer-headshot-studio"
+  "PicsArt/gen-ai-skills|skills/text-to-visual"
+
   # upstash/context7
   "upstash/context7|skills/find-docs"
 )

@@ -48,6 +48,7 @@ The `update-all` workflow installs skills from several upstream sources, includi
 - `heygen-com/hyperframes`
 - `jablonkai/agent-tools`
 - `kepano/obsidian-skills`
+- `PicsArt/gen-ai-skills`
 - `upstash/context7`
 
 To make the `update-all` script available from anywhere in your terminal:
