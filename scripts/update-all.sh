@@ -131,6 +131,9 @@ SKILLS=(
   "heygen-com/hyperframes|skills/waapi"
   "heygen-com/hyperframes|skills/website-to-hyperframes"
 
+  # microsoft/playwright-cli
+  "microsoft/playwright-cli|skills/playwright-cli"
+
   # jablonkai/agent-tools
   "jablonkai/agent-tools|skills/code-analyzer"
   "jablonkai/agent-tools|skills/duv"
