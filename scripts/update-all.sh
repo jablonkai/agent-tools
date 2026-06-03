@@ -54,12 +54,20 @@ SKILLS=(
   # "android/skills|navigation/navigation-3"
   # "android/skills|performance/r8-analyzer"
   # "android/skills|system/edge-to-edge"
-  
+
   # anthropics/skills
+  "anthropics/skills|skills/algorithmic-art"
   "anthropics/skills|skills/canvas-design"
+  "anthropics/skills|skills/doc-coauthoring"
+  "anthropics/skills|skills/docx"
   "anthropics/skills|skills/frontend-design"
+  "anthropics/skills|skills/pdf"
+  "anthropics/skills|skills/pptx"
   "anthropics/skills|skills/skill-creator"
   "anthropics/skills|skills/theme-factory"
+  "anthropics/skills|skills/web-artifacts-builder"
+  "anthropics/skills|skills/webapp-testing"
+  "anthropics/skills|skills/xlsx"
 
   # chrisbanes/skills
   "chrisbanes/skills|skills/compose-animations"
@@ -78,6 +86,7 @@ SKILLS=(
   "chrisbanes/skills|skills/kotlin-flow-state-event-modeling"
   "chrisbanes/skills|skills/kotlin-multiplatform-expect-actual"
   "chrisbanes/skills|skills/kotlin-types-value-class"
+  "chrisbanes/skills|skills/shepherd"
 
   # dart-lang/skills
   "dart-lang/skills|skills/dart-add-unit-test"
@@ -91,12 +100,18 @@ SKILLS=(
   "dart-lang/skills|skills/dart-use-pattern-matching"
 
   # firebase/agent-skills
+  "firebase/agent-skills|skills/firebase-ai-logic-basics"
   "firebase/agent-skills|skills/firebase-app-hosting-basics"
   "firebase/agent-skills|skills/firebase-auth-basics"
   "firebase/agent-skills|skills/firebase-basics"
+  "firebase/agent-skills|skills/firebase-crashlytics"
+  "firebase/agent-skills|skills/firebase-data-connect-basics"
+  "firebase/agent-skills|skills/firebase-firestore"
   "firebase/agent-skills|skills/firebase-firestore-standard"
   "firebase/agent-skills|skills/firebase-hosting-basics"
+  "firebase/agent-skills|skills/firebase-remote-config-basics"
   "firebase/agent-skills|skills/firebase-security-rules-auditor"
+  "firebase/agent-skills|skills/xcode-project-setup"
 
   # flutter/skills
   "flutter/skills|skills/flutter-accessibility-audit"
@@ -112,12 +127,13 @@ SKILLS=(
   "flutter/skills|skills/flutter-use-http-package"
 
   # github/awesome-copilot
-  "github/awesome-copilot|skills/gh-cli"
   "github/awesome-copilot|skills/draw-io-diagram-generator"
   "github/awesome-copilot|skills/gdpr-compliant"
+  "github/awesome-copilot|skills/gh-cli"
 
   # heygen-com/hyperframes
   "heygen-com/hyperframes|skills/animejs"
+  "heygen-com/hyperframes|skills/contribute-catalog"
   "heygen-com/hyperframes|skills/css-animations"
   "heygen-com/hyperframes|skills/gsap"
   "heygen-com/hyperframes|skills/hyperframes"
@@ -128,11 +144,9 @@ SKILLS=(
   "heygen-com/hyperframes|skills/remotion-to-hyperframes"
   "heygen-com/hyperframes|skills/tailwind"
   "heygen-com/hyperframes|skills/three"
+  "heygen-com/hyperframes|skills/typegpu"
   "heygen-com/hyperframes|skills/waapi"
   "heygen-com/hyperframes|skills/website-to-hyperframes"
-
-  # microsoft/playwright-cli
-  "microsoft/playwright-cli|skills/playwright-cli"
 
   # jablonkai/agent-tools
   "jablonkai/agent-tools|skills/code-analyzer"
@@ -149,6 +163,9 @@ SKILLS=(
   "kepano/obsidian-skills|skills/obsidian-bases"
   "kepano/obsidian-skills|skills/obsidian-cli"
   "kepano/obsidian-skills|skills/obsidian-markdown"
+
+  # microsoft/playwright-cli
+  "microsoft/playwright-cli|skills/playwright-cli"
 
   # PicsArt/gen-ai-skills
   "PicsArt/gen-ai-skills|skills/agency-brand-scoping"
@@ -172,6 +189,7 @@ SKILLS=(
   "PicsArt/gen-ai-skills|skills/text-to-visual"
 
   # upstash/context7
+  "upstash/context7|skills/context7-cli"
   "upstash/context7|skills/find-docs"
 )
 
