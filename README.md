@@ -51,6 +51,8 @@ The `update-all` workflow installs skills from several upstream sources, includi
 - `PicsArt/gen-ai-skills`
 - `upstash/context7`
 
+The `claude-md` step syncs [instructions/CLAUDE.md](instructions/CLAUDE.md) to `~/.claude/CLAUDE.md`, so the global Claude instruction file is versioned in this repository. Edit it here and run `update-all claude-md` (or a full `update-all`) to roll it out.
+
 To make the `update-all` script available from anywhere in your terminal:
 
 ```bash

@@ -232,6 +232,7 @@ STEPS=(
   "pipx|C_PYTHON|pipx: upgrade all packages"
   "gh-ext|C_GITHUB|GitHub CLI extensions: upgrade all"
   "skills|C_SKILLS|Agent skills: install/update via gh skill"
+  "claude-md|C_SKILLS|Global CLAUDE.md: sync from jablonkai/agent-tools"
   "cleanup|C_APPLE|Cleanup: npm/pnpm cache + Library/Caches"
   "mo-clean|C_MO|mo: clean"
   "mo-optimize|C_MO|mo: optimize"
@@ -474,6 +475,34 @@ do_skills() {
         gh skill update "$skill_name" --dir "$common_dir" --all
     fi
   done
+}
+
+# Syncs the global Claude instruction file (~/.claude/CLAUDE.md) from the
+# agent-tools repo, where instructions/CLAUDE.md is the source of truth.
+# Downloads to a temp file first so a failed fetch never truncates the
+# existing global file.
+do_claude_md() {
+  if ! have curl; then
+    skip "global CLAUDE.md" "curl not installed"
+    return
+  fi
+
+  local url="https://raw.githubusercontent.com/jablonkai/agent-tools/main/instructions/CLAUDE.md"
+  local dest="$HOME/.claude/CLAUDE.md"
+
+  sync_claude_md() {
+    local tmp
+    tmp=$(mktemp) || return 1
+    if curl -fsSL "$url" -o "$tmp" && [[ -s "$tmp" ]]; then
+      mkdir -p "$(dirname "$dest")"
+      mv "$tmp" "$dest"
+    else
+      rm -f "$tmp"
+      return 1
+    fi
+  }
+
+  run "global CLAUDE.md → $dest" sync_claude_md
 }
 
 do_cleanup() {
