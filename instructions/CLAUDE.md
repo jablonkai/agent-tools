@@ -1,5 +1,11 @@
 # CLAUDE.md — Agent Delegation
 
+**Delegate by default.** Whenever a task can reasonably be handed off, offload
+it — either to a delegate CLI agent (see the table below) or to one of Claude's
+own subagents (via the Agent tool) — instead of doing it inline. This keeps
+Claude's context free for orchestration and integration. Only do work directly
+when delegation isn't possible or would be slower than just doing it.
+
 Offload read-heavy or mechanical subtasks to delegate CLI agents to save
 Claude context. Prefer the paid Google (Gemini, Antigravity) and OpenAI
 (Codex) subscriptions — their quotas are generous; the free-tier agents are
