@@ -22,6 +22,7 @@ It is designed for:
 - `github-do-issue`: workflow for fetching a GitHub issue, implementing it in the current repository, and stopping before commit or PR creation
 - `github-fix-action-error`: diagnoses the latest failing GitHub Actions run on the current branch, applies a targeted fix locally, and — after user approval — commits and pushes (refuses to run on `main`/`master`/`develop`)
 - `github-issues`: standardized issue creation, labeling, triage, commenting, and issue management through the GitHub CLI
+- `markitdown`: convert PDF, Office, HTML, data, e-book, image, audio, and ZIP files (or YouTube URLs) to clean Markdown using Microsoft's markitdown tool, via CLI or Python API
 
 
 ## Available Agents

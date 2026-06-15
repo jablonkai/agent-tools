@@ -20,6 +20,7 @@ Reusable AI tooling repository: skills, custom agents, instruction files, and pr
 - `github-do-issue`: implement a GitHub issue locally before commit or PR creation
 - `github-fix-action-error`: diagnose and fix the latest failing GitHub Actions run
 - `github-issues`: create, triage, label, comment on, and manage GitHub issues
+- `markitdown`: convert PDF, Office, HTML, data, e-book, image, audio, and ZIP files (or YouTube URLs) to Markdown via Microsoft's markitdown CLI or Python API
 
 ## Conventions
 

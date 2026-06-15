@@ -156,6 +156,7 @@ SKILLS=(
   "jablonkai/agent-tools|skills/github-do-issue"
   "jablonkai/agent-tools|skills/github-fix-action-error"
   "jablonkai/agent-tools|skills/github-issues"
+  "jablonkai/agent-tools|skills/markitdown"
 
   # kepano/obsidian-skills
   "kepano/obsidian-skills|skills/defuddle"
