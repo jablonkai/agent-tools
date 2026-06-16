@@ -8,7 +8,7 @@ Reusable AI tooling repository: skills, custom agents, instruction files, and pr
 |------|---------|
 | `skills/<name>/SKILL.md` | Reusable skill, one directory per skill |
 | `instructions/CLAUDE.md` | Global Claude instruction file; source of truth for `~/.claude/CLAUDE.md`, synced by `update-all` (`claude-md` step) |
-| `scripts/update-all.sh` | Helper script to install tooling globally |
+| `scripts/update-all.sh` | Helper script to install/update tooling globally; `update-all init` bootstraps the full toolchain on a fresh machine |
 | `.github/scripts/validate.sh` | Local validation (run before committing) |
 
 ## Available Skills
