@@ -67,6 +67,16 @@ Then you can run it from any directory:
 update-all
 ```
 
+### Bootstrapping a new machine
+
+On a fresh machine, run the `init` bootstrap subcommand to install the whole toolchain from scratch, then fall through to a normal update:
+
+```bash
+update-all init
+```
+
+It idempotently installs the Xcode Command Line Tools, Homebrew, node, git, pipx, uv, the Android CLI (plus `android init` and the core Android SDK — platform-tools, emulator, a platform, and build-tools), `gh`, `mo`, the agent CLIs (`claude`, `copilot`, `codex`, `agy`, `cursor`, `opencode`, `kilo`, `kiro`), `gen-ai`, `ctx7`, `markitdown`, Flutter (manual install), and SDKMAN. Tools already present are skipped, so re-running `init` on a provisioned machine is safe. At the end it prints a reminder listing the tools that still need an interactive login (the installers don't sign you in).
+
 ## Getting Started
 
 1. Use one of the existing GitHub-focused skills as the starting point for your workflow.

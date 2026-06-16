@@ -218,6 +218,7 @@ C_GITHUB=$'\033[38;5;141m'     # purple/violet
 C_SKILLS=$'\033[38;5;51m'      # cyan (agent-tools)
 C_MO=$'\033[38;5;201m'         # magenta
 C_APPLE=$'\033[38;5;250m'      # silver/gray
+C_INIT=$'\033[38;5;48m'        # spring green (bootstrap)
 
 # ---------- step registry ----------
 # Ordered list of steps. Format: "ID|COLOR_VAR|TITLE"
@@ -225,10 +226,10 @@ C_APPLE=$'\033[38;5;250m'      # silver/gray
 # Each ID maps to a function named do_<id> (hyphens → underscores).
 STEPS=(
   "brew|C_HOMEBREW|Homebrew: update + upgrade + cleanup"
-  "android|C_ANDROID|Android CLI: update"
+  "android|C_ANDROID|Android: CLI update + SDK packages update"
   "android-skills|C_ANDROID|Android skills: install/update via android skills add"
   "flutter|C_FLUTTER|Flutter: upgrade"
-  "sdk|C_SDKMAN|SDKMAN: selfupdate + update + upgrade + install kotlintoolchain"
+  "sdk|C_SDKMAN|SDKMAN: selfupdate + update + upgrade + install/upgrade + warm-up kotlintoolchain"
   "rust|C_RUST|Rust toolchain: rustup update"
   "pipx|C_PYTHON|pipx: upgrade all packages"
   "gh-ext|C_GITHUB|GitHub CLI extensions: upgrade all"
@@ -327,6 +328,9 @@ do_brew() {
 do_android() {
   if have android; then
     run "android update" android update
+    # `android sdk update` with no package name updates every installed SDK
+    # package (platform-tools, build-tools, platforms, emulator, …) to latest.
+    run "android sdk update" android sdk update
   else
     skip "android" "not installed"
   fi
@@ -393,6 +397,21 @@ do_sdk() {
   run "sdk update"                  sdk_auto update              # refresh candidate metadata
   run "sdk upgrade"                 sdk_auto upgrade             # upgrade all installed candidates
   run "sdk install kotlintoolchain" sdk_auto install kotlintoolchain
+  # kotlintoolchain is a "hidden" candidate (absent from `sdk list candidates`),
+  # so the no-arg `sdk upgrade` above doesn't reliably cover it — upgrade it
+  # explicitly. No-op ("up-to-date") when already on the latest version.
+  run "sdk upgrade kotlintoolchain"  sdk_auto upgrade kotlintoolchain
+
+  # Warm up the Kotlin toolchain. The `kotlintoolchain` candidate only installs
+  # a thin `kotlin` launcher; the real toolchain (CLI dist + JRE) is downloaded
+  # lazily on the first `kotlin` invocation. Trigger that download now via
+  # `kotlin --version` so the user's first real use isn't blocked on it.
+  # No-op (prints the version from cache) once the toolchain is already present.
+  if have kotlin; then
+    run "kotlin toolchain warm-up" kotlin --version
+  else
+    skip "kotlin toolchain warm-up" "kotlin not on PATH"
+  fi
 
   set -u
 }
@@ -697,6 +716,226 @@ do_macos() {
   fi
 }
 
+# ---------- init / bootstrap ----------
+# `update-all init` installs the full toolchain from scratch, then falls
+# through to a normal update run (see RUN_INIT handling below). Every
+# installer is idempotent: tools already present are skipped, so re-running
+# `init` on a provisioned machine is safe.
+
+# Raw installer commands. Each is wrapped in a function because run() executes
+# a command via "$@" (not a shell pipeline), so the curl|bash one-liners and
+# env-prefixed invocations need to live inside a function body.
+install_homebrew()    { NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; }
+install_android_cli() {
+  # Google publishes a per-platform install.sh; it moves the binary into
+  # /usr/local/bin (may prompt for sudo on macOS).
+  local os arch
+  os=$(uname -s | tr '[:upper:]' '[:lower:]')
+  case "$(uname -m)" in
+    arm64|aarch64) arch=arm64 ;;
+    x86_64|amd64)  arch=x86_64 ;;
+    *)             arch=$(uname -m) ;;
+  esac
+  curl -fsSL "https://dl.google.com/android/cli/latest/${os}_${arch}/install.sh" | bash
+}
+install_gen_ai()      { curl -fsSL https://picsart.com/gen-ai-cli/install.sh | bash; }
+install_sdkman()      { curl -fsSL https://get.sdkman.io | bash; }
+
+# Where the Flutter SDK gets extracted (matches the existing machine layout).
+FLUTTER_DIR="$HOME/Utils/flutter"
+
+# Manual Flutter install per https://docs.flutter.dev/install/manual — download
+# the official stable zip and extract it (no Homebrew). Picks the right archive
+# for the host arch from Flutter's release manifest. jq is pulled via brew if
+# missing; brew is already present by the time this runs.
+install_flutter() {
+  local arch json base archive url tmp
+  case "$(uname -m)" in
+    arm64|aarch64) arch=arm64 ;;
+    *)             arch=x64 ;;
+  esac
+  have jq || brew install jq >/dev/null 2>&1 || true
+  json=$(curl -fsSL https://storage.googleapis.com/flutter_infra_release/releases/releases_macos.json) || return 1
+  base=$(printf '%s' "$json" | jq -r '.base_url')
+  archive=$(printf '%s' "$json" | jq -r --arg a "$arch" \
+    '.current_release.stable as $h | .releases[] | select(.hash==$h and .dart_sdk_arch==$a) | .archive' | head -1)
+  [[ -n "$base" && -n "$archive" && "$archive" != "null" ]] || return 1
+  url="$base/$archive"
+  tmp=$(mktemp -d) || return 1
+  if ! curl -fsSL "$url" -o "$tmp/flutter.zip"; then rm -rf "$tmp"; return 1; fi
+  mkdir -p "$(dirname "$FLUTTER_DIR")"
+  # The zip already contains a top-level flutter/ dir.
+  if ! unzip -q "$tmp/flutter.zip" -d "$(dirname "$FLUTTER_DIR")"; then rm -rf "$tmp"; return 1; fi
+  rm -rf "$tmp"
+}
+
+# Append a line to ~/.zprofile once (idempotent), so a new shell keeps the PATH.
+add_to_zprofile() {  # line
+  local line="$1" prof="$HOME/.zprofile"
+  grep -qsF -- "$line" "$prof" 2>/dev/null && return 0
+  printf '%s\n' "$line" >> "$prof"
+}
+
+# Printed at the very end of an `init` run: the installers above don't log you
+# in, so list the tools that still need interactive authentication.
+print_auth_reminder() {
+  echo
+  hr "$C_INIT"
+  printf '%s%s⚠ Manual authentication still required%s\n' "${BOLD}" "$C_INIT" "${RESET}"
+  hr "$C_INIT"
+  printf '%sThe installers do not sign you in. Authenticate these before first use:%s\n' "${DIM}" "${RESET}"
+  printf '  %-14s %s\n' "gh"            "gh auth login"
+  printf '  %-14s %s\n' "Claude Code"   "claude  → then /login"
+  printf '  %-14s %s\n' "Codex"         "codex  → sign in on first run"
+  printf '  %-14s %s\n' "Antigravity"   "agy  → sign in on first run"
+  printf '  %-14s %s\n' "Cursor"        "cursor-agent login"
+  printf '  %-14s %s\n' "Kiro"          "kiro-cli  → sign in on first run"
+  printf '  %-14s %s\n' "Copilot"       "copilot  → GitHub sign-in on first run"
+  printf '  %-14s %s\n' "OpenCode"      "opencode auth login"
+  printf '  %-14s %s\n' "Kilo"          "kilo  → sign in on first run"
+  printf '  %-14s %s\n' "Picsart gen-ai" "gen-ai login"
+  printf '  %-14s %s\n' "context7"      "ctx7  → set your Context7 API key if prompted"
+}
+
+# Install $cmd via $installer only if missing; record via run()/skip().
+ensure_cmd() {  # cmd label installer-cmd [args...]
+  local cmd="$1" label="$2"; shift 2
+  if have "$cmd"; then
+    skip "install $label" "already installed"
+  else
+    run "install $label" "$@"
+    hash -r 2>/dev/null
+  fi
+}
+
+ensure_brew_formula() {  # cmd formula
+  local cmd="$1" formula="$2"
+  if ! have brew; then skip "install $formula" "brew not available"; return; fi
+  if have "$cmd"; then skip "install $formula" "already installed"; return; fi
+  run "brew install $formula" brew install "$formula"
+  hash -r 2>/dev/null
+}
+
+ensure_brew_cask() {  # cmd cask
+  local cmd="$1" cask="$2"
+  if ! have brew; then skip "install $cask" "brew not available"; return; fi
+  if have "$cmd"; then skip "install $cask" "already installed"; return; fi
+  run "brew install --cask $cask" brew install --cask "$cask"
+  hash -r 2>/dev/null
+}
+
+do_init() {
+  # Prepend the dirs installers drop binaries into so the `have` checks below
+  # (and the trailing update-all run) can see them this session.
+  export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$FLUTTER_DIR/bin:$PATH"
+
+  # 0. Xcode Command Line Tools — provides git + compilers and is a hard
+  #    prerequisite for Homebrew, so install it first. `xcode-select --install`
+  #    opens a GUI dialog and returns immediately; the rest proceeds once done.
+  if xcode-select -p >/dev/null 2>&1; then
+    skip "install Xcode Command Line Tools" "already installed"
+  else
+    run "install Xcode Command Line Tools" xcode-select --install
+  fi
+
+  # 1. Homebrew — base package manager for most tools below.
+  ensure_cmd brew "Homebrew" install_homebrew
+  # Load brew into this shell so the formula/cask installs can run.
+  if have brew; then
+    eval "$(brew shellenv)"
+  elif [[ -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [[ -x /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+  hash -r 2>/dev/null
+
+  # 2. Android CLI, then initialize its environment (skills etc).
+  ensure_cmd android "Android CLI" install_android_cli
+  if have android; then
+    run "android init" android init
+  else
+    skip "android init" "android not installed"
+  fi
+
+  # 2b. Android SDK — use the android CLI's own package manager to pull the core
+  #     SDK components: platform-tools (adb/fastboot), the emulator, a recent
+  #     platform, and matching build-tools. `android sdk install` defaults each
+  #     package to its latest version and is idempotent (already-installed
+  #     packages are no-ops), so re-running is safe. Bump the API level here when
+  #     a newer stable platform is needed.
+  if have android; then
+    run "android sdk install (platform-tools, emulator, platform, build-tools)" \
+      android sdk install platform-tools emulator platforms/android-35 build-tools/35.0.0
+  else
+    skip "android sdk install" "android not installed"
+  fi
+
+  # 3. Core tooling via Homebrew. `mo` is tw93's mole (shadows core/mole).
+  #    node ships npm (needed for the ctx7 install below); pipx backs
+  #    markitdown; uv is general Python tooling.
+  ensure_brew_formula node node          # node + npm
+  ensure_brew_formula pipx pipx
+  ensure_brew_formula uv   uv
+  ensure_brew_formula gh   gh
+  ensure_brew_formula mo   tw93/tap/mole
+
+  # git — always install Homebrew's git, even though the Command Line Tools
+  # already provide one. Keyed on brew's own install state (not `have git`,
+  # which the CLT git satisfies); brew is earlier in PATH via `brew shellenv`,
+  # so its git takes precedence over /usr/bin/git once installed.
+  if ! have brew; then
+    skip "install git" "brew not available"
+  elif brew list --formula git >/dev/null 2>&1; then
+    skip "brew install git" "already installed"
+  else
+    run "brew install git" brew install git
+    hash -r 2>/dev/null
+  fi
+
+  # 4. Agent CLIs (delegation fleet from CLAUDE.md) — all available via brew.
+  #    ensure_brew_cask/formula take the bare package name as the 2nd arg.
+  ensure_brew_cask    claude       claude-code        # Claude Code CLI
+  ensure_brew_cask    copilot      copilot-cli        # GitHub Copilot CLI
+  ensure_brew_cask    codex        codex              # OpenAI Codex CLI
+  ensure_brew_cask    agy          antigravity-cli    # Google Antigravity CLI
+  ensure_brew_cask    cursor-agent cursor-cli         # Cursor CLI
+  ensure_brew_formula opencode     opencode           # OpenCode CLI
+  ensure_brew_formula kilo         kilo-org/tap/kilo  # Kilo Code CLI
+  ensure_brew_cask    kiro-cli     kiro-cli           # Kiro CLI
+
+  # 5. Extra CLIs.
+  ensure_cmd gen-ai "Picsart gen-ai CLI" install_gen_ai
+  if have npm; then
+    ensure_cmd ctx7 "context7 CLI (ctx7)" npm install -g ctx7@latest
+  else
+    skip "install context7 CLI (ctx7)" "npm not installed"
+  fi
+  # markitdown — required by the repo's own markitdown skill (a pipx package).
+  if have pipx; then
+    ensure_cmd markitdown "markitdown[all]" pipx install 'markitdown[all]'
+  else
+    skip "install markitdown[all]" "pipx not installed"
+  fi
+
+  # 6. Flutter SDK — manual install (downloaded zip, not Homebrew). Add its bin
+  #    to PATH for this session and persist it in ~/.zprofile.
+  ensure_cmd flutter "Flutter SDK (manual)" install_flutter
+  if [[ -x "$FLUTTER_DIR/bin/flutter" ]]; then
+    export PATH="$FLUTTER_DIR/bin:$PATH"
+    add_to_zprofile "export PATH=\"\$HOME/Utils/flutter/bin:\$PATH\""
+    hash -r 2>/dev/null
+  fi
+
+  # 7. SDKMAN provides `sdk`; the trailing update-all `sdk` step then runs
+  #    `sdk install kotlintoolchain`, so the Kotlin toolchain lands there.
+  if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
+    skip "install SDKMAN" "already installed"
+  else
+    run "install SDKMAN" install_sdkman
+  fi
+}
+
 # ---------- argument parsing ----------
 
 usage() {
@@ -716,6 +955,17 @@ ${BOLD}Options:${RESET}
 
 Positional arguments are treated as extra --only entries.
 
+${BOLD}Bootstrap:${RESET}
+  init                  Install the full toolchain from scratch, then run a
+                        normal update. Installs (idempotently): Xcode Command
+                        Line Tools, Homebrew, node, git, pipx, uv, Android CLI +
+                        'android init' + Android SDK (platform-tools, emulator,
+                        platform, build-tools), gh, mo, the agent CLIs (claude, copilot,
+                        codex, agy, cursor, opencode, kilo, kiro), gen-ai, ctx7,
+                        markitdown, Flutter (manual), and SDKMAN (kotlintoolchain
+                        lands via the trailing sdk step). Prints an auth reminder
+                        at the end for tools that need an interactive login.
+
 ${BOLD}Available steps:${RESET}
 $(for entry in "${STEPS[@]}"; do
     IFS='|' read -r id color title <<< "$entry"
@@ -723,6 +973,9 @@ $(for entry in "${STEPS[@]}"; do
   done)
 
 ${BOLD}Examples:${RESET}
+  # Bootstrap a brand-new machine, then update everything
+  $(basename "$0") init
+
   # Run every step
   $(basename "$0")
 
@@ -747,6 +1000,16 @@ list_steps() {
 
 ONLY=()
 SKIP_LIST=()
+
+# `init` is a bootstrap subcommand, not a step id. Pull it out before parsing
+# so it isn't validated against the step registry. After init runs, the
+# remaining args (usually none) drive a normal update.
+RUN_INIT=0
+init_filtered=()
+for arg in "$@"; do
+  if [[ "$arg" == "init" ]]; then RUN_INIT=1; else init_filtered+=("$arg"); fi
+done
+set -- ${init_filtered[@]+"${init_filtered[@]}"}
 
 add_csv() {
   local arr_name="$1"
@@ -809,6 +1072,12 @@ should_run() {
 
 # ---------- run ----------
 
+# Bootstrap first when `init` was given, then fall through to the normal run.
+if ((RUN_INIT)); then
+  step "$C_INIT" "Init: install the full toolchain from scratch"
+  do_init
+fi
+
 for entry in "${STEPS[@]}"; do
   IFS='|' read -r id color_var title <<< "$entry"
   should_run "$id" || continue
@@ -829,3 +1098,8 @@ else
   done
 fi
 hr
+
+# After an `init` run, remind about the logins the installers can't do.
+if ((RUN_INIT)); then
+  print_auth_reminder
+fi
