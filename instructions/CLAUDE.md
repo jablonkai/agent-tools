@@ -7,10 +7,9 @@ Claude's context free for orchestration and integration. Only do work directly
 when delegation isn't possible or would be slower than just doing it.
 
 Offload read-heavy or mechanical subtasks to delegate CLI agents to save
-Claude context. Prefer the paid Google (Antigravity) and OpenAI (Codex)
-subscriptions — their quotas are generous; the free-tier agents are
-fallbacks. Claude is the orchestrator and the ONLY agent that writes
-to this repo.
+Claude context. Prefer the paid Google (Antigravity) subscription — its
+quota is generous; the free-tier agents (including Codex) are fallbacks.
+Claude is the orchestrator and the ONLY agent that writes to this repo.
 
 ## Agents — when to use which
 
@@ -18,8 +17,8 @@ to this repo.
 |---|---|---|
 | **Antigravity CLI** | `agy -p "<prompt>"` | DEFAULT for reading: codebase exploration, log/crash analysis, doc & changelog summaries; good for agentic multi-step exploration. Paid Google subscription — generous quota. |
 | **Kiro CLI** | `kiro-cli chat --no-interactive --trust-tools=fs_read "<prompt>"` | Agentic reader/explorer (Claude models). Alternate reader when `agy` is rate-limited. `--trust-tools=fs_read` keeps it read-only. |
-| **Codex CLI** | `codex exec "<prompt>"` | DEFAULT for generated code: test skeletons, fixtures, boilerplate, doc drafts → `/tmp/agent-out/`. Also second opinion on tricky diffs. Paid OpenAI subscription. |
-| **OpenCode** | `opencode run "<prompt>"` | Free FALLBACK code generator when Codex is rate-limited. Always auto mode — omit `-m`, let OpenCode pick the model. |
+| **OpenCode** | `opencode run "<prompt>"` | DEFAULT for generated code: test skeletons, fixtures, boilerplate, doc drafts → `/tmp/agent-out/`. Free — always auto mode, omit `-m` and let OpenCode pick the model. |
+| **Codex CLI** | `codex exec "<prompt>"` | Free OpenAI tier (no subscription) — limited quota, use sparingly. Good for a second opinion on tricky diffs; fallback code generator when OpenCode is rate-limited. |
 | **Kilo Code CLI** | `kilo run -m kilo-auto/free "<prompt>"` | Same as OpenCode (it's OpenCode-based). Second free fallback. Always auto mode — `kilo-auto/free` auto-routes to the best available free model. |
 | **Cursor CLI** | `cursor-agent -p "<prompt>" --output-format text` | Free FALLBACK reader when the Google agents are rate-limited. Hobby free quota is limited — not for routine bulk reads. ⚠ `-p` mode has write+bash access: only send read-style prompts and state "Do NOT modify files". |
 | **Copilot CLI** | `copilot -p "<prompt>" -s --deny-tool write --deny-tool shell` | GitHub-context questions: issues, PRs, Actions runs via its built-in GitHub MCP. Copilot Free credit quota is small — sparingly. |
@@ -60,17 +59,17 @@ agy -p "Summarize responsibilities and risks in this 3000-line file: \
 kiro-cli chat --no-interactive --trust-tools=fs_read \
   "Map the module dependencies of this repo. <contract>"
 
-# Test scaffolding (Codex)
-codex exec "Unit test skeleton (project's test framework) for: <FILE>" \
-  > /tmp/agent-out/foo-test
+# Test scaffolding (OpenCode, auto mode — default code generator)
+opencode run \
+  "Unit test skeleton (project's test framework) for: <FILE>" > /tmp/agent-out/foo-test
 
-# Second opinion (Codex)
+# Second opinion (Codex, sparingly — free tier, limited quota)
 git diff HEAD~1 | codex exec \
   "Review for bugs and common pitfalls (concurrency, edge cases). Max 20 lines."
 
-# Fallback scaffolding when Codex is rate-limited (OpenCode, auto mode)
-opencode run \
-  "Unit test skeleton (project's test framework) for: <FILE>" > /tmp/agent-out/foo-test
+# Fallback scaffolding when OpenCode is rate-limited (Codex)
+codex exec "Unit test skeleton (project's test framework) for: <FILE>" \
+  > /tmp/agent-out/foo-test
 
 # Second fallback (Kilo)
 kilo run -m kilo-auto/free "Doc comments for: <FILE>" > /tmp/agent-out/doc.txt
