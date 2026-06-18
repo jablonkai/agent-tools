@@ -316,10 +316,16 @@ run_if_changed() {
 
 do_brew() {
   if have brew; then
+    # Newer Homebrew prompts for confirmation before some upgrades (e.g. casks).
+    # Feed `yes` on stdin so any such prompt is auto-accepted and the step runs
+    # unattended. Mirrors the sdk_auto pattern in do_sdk. brew reads password /
+    # sudo prompts from the tty, not stdin, so this only answers y/N questions.
+    brew_auto() { yes 2>/dev/null | brew "$@"; }
+
     # --verbose so fetched taps / up-to-date lines are always visible.
-    run "brew update"  brew update --verbose
-    run "brew upgrade" brew upgrade --verbose
-    run "brew cleanup --prune" brew cleanup --prune=all
+    run "brew update"  brew_auto update --verbose
+    run "brew upgrade" brew_auto upgrade --verbose
+    run "brew cleanup --prune" brew_auto cleanup --prune=all
   else
     skip "brew" "not installed"
   fi
