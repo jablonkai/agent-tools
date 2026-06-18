@@ -478,8 +478,13 @@ do_skills() {
       fi
 
       if [[ ! -f "$target_dir/$skill_name/SKILL.md" ]]; then
+        # --force overwrites without prompting. A skill whose upstream
+        # frontmatter is broken fails install (leaving a partial dir with no
+        # SKILL.md), so the guard above re-runs install on every pass; without
+        # --force that re-run hangs on an interactive "Overwrite? (y/N)" prompt
+        # in unattended runs. The failure is still recorded in the summary.
         run "gh skill install $skill_name → $target" \
-          gh skill install "$repo" "$path" "${placement_args[@]}"
+          gh skill install "$repo" "$path" "${placement_args[@]}" --force
       else
         skip "gh skill install $skill_name → $target" "already installed, will update" "no_summary"
         if [[ "$target" == "common" ]]; then
@@ -1076,7 +1081,40 @@ should_run() {
   return 0
 }
 
+# ---------- sudo priming ----------
+# The mo (mole) cleanup steps shell out to `sudo` internally to remove
+# system-owned caches. Prompt for the password once at the very start and keep
+# the sudo timestamp warm in the background, so those steps run unattended at
+# the end of a long run instead of blocking on (or timing out) a mid-run prompt.
+SUDO_KEEPALIVE_PID=""
+
+prime_sudo() {
+  [[ ${EUID:-$(id -u)} -eq 0 ]] && return 0          # already root
+  have sudo || { skip "sudo priming" "sudo not available"; return 0; }
+  printf '%s%s🔑 Password needed up front for the mo cleanup steps at the end.%s\n' \
+    "${BOLD}" "${C_MO}" "${RESET}"
+  if ! sudo -v; then
+    printf '%s⚠ Could not cache sudo credentials; mo steps may prompt later.%s\n' \
+      "${YELLOW}" "${RESET}"
+    return 1
+  fi
+  # Refresh the cached credential every 60s (sudo's default timeout is 5min)
+  # until this script exits, so it's still valid when the mo steps run.
+  ( while true; do sudo -n true 2>/dev/null; sleep 60; kill -0 "$$" 2>/dev/null || exit; done ) &
+  SUDO_KEEPALIVE_PID=$!
+}
+
+stop_sudo_keepalive() {
+  [[ -n "$SUDO_KEEPALIVE_PID" ]] && kill "$SUDO_KEEPALIVE_PID" 2>/dev/null
+}
+
 # ---------- run ----------
+
+# Prompt for the password up front if any mo step is actually going to run.
+if have mo && { should_run "mo-clean" || should_run "mo-optimize"; }; then
+  prime_sudo
+  trap stop_sudo_keepalive EXIT
+fi
 
 # Bootstrap first when `init` was given, then fall through to the normal run.
 if ((RUN_INIT)); then
