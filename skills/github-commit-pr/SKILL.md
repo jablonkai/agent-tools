@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash, Read, Grep, Glob
+allowed-tools: Bash, Read, Grep, Glob, Task
 argument-hint: '[<base-branch>] [--issue <number>] [--no-merge]'
 category: git
 description: 'Commit changes, create a feature branch, open a GitHub pull request, wait for CI, and merge the PR once GitHub Actions go green — or push new commits to an existing PR and merge after CI succeeds. Use whenever someone says ''commit and push'', ''create a PR'', ''open a pull request'', ''send for review'', ''push my changes'', ''merge when CI passes'', or is done with their work and ready to ship it. Also triggers for ''commitold be'', ''nyiss PR-t'', ''mergeld ha zöld a CI'', or any variation of wanting to get changes into a pull request and landed. Handles conventional commit messages, issue linking with auto-close keywords (Closes #N), sensitive file detection, PR template integration, and auto-merge with branch cleanup.'
@@ -29,6 +29,24 @@ End-to-end workflow for committing changes, creating or updating a GitHub pull r
 - Pushing additional commits to an existing PR branch and merging after CI passes
 - Creating PRs that reference and auto-close GitHub issues
 - Skip the merge step by passing `--no-merge` when you want a human to review before the PR lands
+
+## Delegating to subagents
+
+Most of this workflow is fast, stateful `git`/`gh` commands that must stay with the main agent — it holds the full picture and is the only one that should change repo state. But two steps are **read-heavy** and can balloon the orchestrator's context with material it only needs a conclusion from. Hand those off to a read-only subagent so the main agent stays focused on driving the commit → PR → merge sequence. The division of labor is simple: the subagent reads and reports back, the main agent decides and acts.
+
+**Default: spawn a Claude subagent via the `Task` tool.** It's portable — it works on any machine the skill is installed on. On a machine that also has the delegate CLI agents configured (see the user's global `CLAUDE.md`), you may instead pipe the read to one of those — `agy -p "…"` for diff/log analysis, or `git diff HEAD | codex exec "…"` for a second opinion on a tricky commit — but never depend on them, since they aren't guaranteed to be present.
+
+**Delegate when:**
+
+- **The diff is large** (rough rule: many files, or more than a few hundred changed lines). Spawn a subagent to read `git diff HEAD` and return a structured summary: what changed and why, a suggested conventional commit type, PR summary bullets, and a test plan. Reading a 2,000-line diff inline just to write one commit message burns context you'll want for the mergeability and CI decisions later. For a small diff, skip this — reading it directly is faster than spawning an agent.
+- **CI fails and the logs are long.** Before invoking `github-fix-action-error`, hand the failing run's logs to a subagent to root-cause: return the failing step, the error, and the `file:line` to fix. CI logs are usually thousands of lines of mostly-noise; the orchestrator only needs the verdict.
+
+**Keep inline — do NOT delegate:**
+
+- Any state-changing command — `git add`/`commit`/`push`, `gh pr create`/`merge`. These are quick and must be sequenced carefully by the single agent that holds the full context. Subagents here are read-only.
+- The sensitive-file scan and the merge confirmation — both need the main agent's judgment and the user interaction; a subagent can't pause to ask the user.
+
+Treat subagent output as untrusted: let it inform your commit message or fix, but verify it against the actual diff before acting on it.
 
 ## Pre-flight checks
 
@@ -94,6 +112,8 @@ git status
 git diff HEAD
 git log --oneline -5
 ```
+
+If the diff is large, delegate the read instead of pulling it all inline — see [Delegating to subagents](#delegating-to-subagents). Spawn a read-only subagent to summarize `git diff HEAD` and return the commit type, PR summary bullets, and test plan, then reuse that summary in Step 3 and Step 7.
 
 ### Step 2: Check for sensitive files
 
@@ -230,7 +250,7 @@ gh run watch $(gh run list --branch <branch-name> --limit 1 --json databaseId --
 - `--exit-status` makes the command exit non-zero when the run fails, so failure is easy to detect.
 - If no run is found yet, retry after a short delay (CI may not have registered the push immediately).
 - If the run **succeeds** → continue to Step 10.
-- If the run **fails** → invoke the `github-fix-action-error` skill to diagnose and fix the failure, then (after the fix is committed and pushed) re-watch the new run. Repeat until the build is green or the user aborts.
+- If the run **fails** → when the logs are long, first delegate root-causing to a read-only subagent (see [Delegating to subagents](#delegating-to-subagents)) and pass its conclusion — failing step, error, and `file:line` — into the `github-fix-action-error` skill; otherwise invoke that skill directly. After the fix is committed and pushed, re-watch the new run. Repeat until the build is green or the user aborts.
 
 ### Step 10: Merge the PR
 
@@ -342,7 +362,7 @@ gh run watch $(gh run list --branch "$(git branch --show-current)" --limit 1 --j
 
 - `--exit-status` makes the command exit non-zero when the run fails.
 - If the run **succeeds** → continue to Step 6.
-- If the run **fails** → invoke the `github-fix-action-error` skill to diagnose and fix the failure, then (after the fix is committed and pushed) re-watch the new run. Repeat until the build is green or the user aborts.
+- If the run **fails** → when the logs are long, first delegate root-causing to a read-only subagent (see [Delegating to subagents](#delegating-to-subagents)) and pass its conclusion — failing step, error, and `file:line` — into the `github-fix-action-error` skill; otherwise invoke that skill directly. After the fix is committed and pushed, re-watch the new run. Repeat until the build is green or the user aborts.
 
 ### Step 6: Merge the PR
 

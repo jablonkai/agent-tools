@@ -1,17 +1,16 @@
 name: Validate Repository Assets
 
 on:
+  # validate.sh checks the whole repo (all Markdown links + structure),
+  # so run on every PR rather than a path subset.
   pull_request:
-    paths:
-      - 'skills/**'
-      - 'agents/**'
-      - '.github/scripts/**'
-      - '.github/workflows/**'
-      - 'README.md'
   push:
     branches:
       - main
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   validate:
