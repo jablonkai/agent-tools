@@ -959,6 +959,35 @@ do_init() {
   ensure_brew_formula kilo         kilo-org/tap/kilo  # Kilo Code CLI
   ensure_brew_cask    kiro-cli     kiro-cli           # Kiro CLI
 
+  # 4b. rtk (Rust Token Killer) — token-optimized CLI proxy for all agents.
+  ensure_brew_formula rtk          rtk                # rtk (Rust Token Killer)
+
+  # 4c. Wire rtk into each installed agent. `rtk init` writes the agent's
+  #     RTK.md/instructions and patches its hook config; it's idempotent
+  #     (re-runs report "already up to date"). --auto-patch keeps the run
+  #     unattended (no settings.json prompt); --codex rejects --auto-patch, so
+  #     it's omitted there. Only the agents rtk can configure *globally* are set
+  #     up here — Antigravity and Kilo Code are project-scoped in rtk (run
+  #     `rtk init --agent antigravity|kilocode` inside each project), and Kiro
+  #     isn't supported by rtk, so none of those three can be bootstrapped here.
+  rtk_init_agent() {  # label cmd rtk-init-args...
+    local label="$1" cmd="$2"; shift 2
+    if have "$cmd"; then
+      run "rtk init → $label" rtk init "$@"
+    else
+      skip "rtk init → $label" "$cmd not installed"
+    fi
+  }
+  if have rtk; then
+    rtk_init_agent "Claude Code" claude       --global --auto-patch
+    rtk_init_agent "Cursor"      cursor-agent --agent cursor --global --auto-patch
+    rtk_init_agent "OpenCode"    opencode     --opencode --global --auto-patch
+    rtk_init_agent "Codex"       codex        --codex --global
+    rtk_init_agent "Copilot"     copilot      --copilot --global --auto-patch
+  else
+    skip "rtk init (agent hooks)" "rtk not installed"
+  fi
+
   # 5. Extra CLIs.
   ensure_cmd gen-ai "Picsart gen-ai CLI" install_gen_ai
   if have npm; then
@@ -1016,10 +1045,11 @@ ${BOLD}Bootstrap:${RESET}
                         Line Tools, Homebrew, node, git, pipx, uv, Android CLI +
                         'android init' + Android SDK (platform-tools, emulator,
                         platform, build-tools), gh, mo, the agent CLIs (claude, copilot,
-                        codex, agy, cursor, opencode, kilo, kiro), gen-ai, ctx7,
-                        markitdown, Flutter (manual), and SDKMAN (kotlintoolchain
-                        lands via the trailing sdk step). Prints an auth reminder
-                        at the end for tools that need an interactive login.
+                        codex, agy, cursor, opencode, kilo, kiro), rtk (+ wires
+                        its hooks into Claude, Cursor, OpenCode, Codex, Copilot),
+                        gen-ai, ctx7, markitdown, Flutter (manual), and SDKMAN
+                        (kotlintoolchain lands via the trailing sdk step). Prints
+                        an auth reminder at the end for tools that need a login.
 
 ${BOLD}Available steps:${RESET}
 $(for entry in "${STEPS[@]}"; do
