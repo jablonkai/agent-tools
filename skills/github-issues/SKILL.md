@@ -39,7 +39,7 @@ Perform this parsing step **before** running any `gh issue` or `gh label` comman
 
 ## When to use
 
-- Creating a new GitHub issue
+- Creating a new GitHub issue (with a duplicate check first — updating an existing issue when one already covers the request)
 - Viewing issue details
 - Closing issues with explanation
 - Commenting on existing issues
@@ -152,7 +152,19 @@ Based on `$ARGUMENTS`, perform ONE of these operations:
    - Bug indicators: "fix", "broken", "error", "crash", "fail", "wrong", "incorrect", "regression"
    - Enhancement indicators: "add", "implement", "new", "improve", "show", "allow", "support", "enable"
    - Documentation indicators: "document", "readme", "guide", "docs"
-2. **Check which labels are available** in the target repository:
+2. **Check for an existing issue covering the same thing — before creating anything.** Filing a second issue for a problem that already has one fragments the discussion and wastes triage effort, so always search first. Pull the most distinctive keywords from the title (drop generic verbs like "add"/"fix" and stop-words) and search across both open and closed issues:
+
+```bash
+gh issue list -R "$REPO" --search "<keywords>" --state all --json number,title,state,url,updatedAt --limit 20
+```
+
+   Read the candidates and judge whether any describes the **same underlying request or bug** — not just a keyword overlap. Two issues that touch the same file but ask for different things are not duplicates; two issues worded differently that would be resolved by the same change are. When unsure, treat the closest candidate as a possible match and let the user decide rather than guessing.
+
+   - **No real match:** proceed to step 3 and create a new issue.
+   - **A matching OPEN issue exists:** do not create a duplicate. Open it (`gh issue view <number> -R "$REPO"`) and compare its body against the new details. If the request brings genuinely new information (extra repro steps, an affected file the issue is missing, a clearer proposed solution, new context), update the existing issue instead — see step 6b. If the existing issue already covers everything, tell the user it's already filed (with the link) and stop without changing anything.
+   - **A matching CLOSED issue exists:** surface it to the user with its link and state. Ask whether to reopen it (if the problem has resurfaced), add the new context as a comment, or file a fresh issue (e.g. the old one was a different root cause). Don't reopen silently.
+
+3. **Check which labels are available** in the target repository:
 
 ```bash
 gh label list -R "$REPO" --json name --jq '.[].name'
@@ -165,10 +177,10 @@ gh label list -R "$REPO" --json name --jq '.[].name'
      - Ask the user to pick an existing label from the list as a substitute, or
      - Ask the user to confirm creating the missing label before continuing.
 
-3. Select the matching body template (enhancement or bug) and pre-fill the "Summary" section from context. If the user has provided enough detail, fill all applicable sections. Otherwise, ask for the missing required sections — especially "Proposed Solution" with specific file paths and implementation approach.
-4. Suggest appropriate labels based on the type detection and available labels discovered in step 2.
-5. **Present the full issue (title, body, labels) for user review before creating.** Wait for confirmation or edits.
-6. Create the issue:
+4. Select the matching body template (enhancement or bug) and pre-fill the "Summary" section from context. If the user has provided enough detail, fill all applicable sections. Otherwise, ask for the missing required sections — especially "Proposed Solution" with specific file paths and implementation approach.
+5. Suggest appropriate labels based on the type detection and available labels discovered in step 3.
+6. **Present the full issue (title, body, labels) for user review before creating.** Wait for confirmation or edits.
+7. Create the issue:
 
 ```bash
 gh issue create -R "$REPO" --title "<title>" --label "<label1>,<label2>" --body "$(cat <<'EOF'
@@ -177,7 +189,32 @@ EOF
 )"
 ```
 
-7. Output the issue URL.
+8. Output the issue URL.
+
+#### Step 6b: Updating an existing issue instead of creating
+
+Reached only when step 2 found a matching open issue that's missing information the new request provides. The goal is to enrich the existing issue without clobbering what's already there — its body may contain edits, discussion references, or detail the user added by hand.
+
+1. Decide what genuinely needs to change. For a small addition (an extra repro step, a link, a newly identified cause), a comment is the least destructive and keeps an audit trail:
+
+```bash
+gh issue comment <number> -R "$REPO" --body "$(cat <<'EOF'
+<the new information, e.g. additional repro steps or an affected file>
+EOF
+)"
+```
+
+2. If the issue's **structured body** is materially incomplete (missing the "Proposed Solution", wrong/empty "Summary") and rewriting it makes the issue clearer, edit the body — but show the user the proposed new body first and merge with the existing content rather than replacing it wholesale:
+
+```bash
+gh issue edit <number> -R "$REPO" --body "$(cat <<'EOF'
+<merged body — existing content plus the new details>
+EOF
+)"
+```
+
+3. If the new context changes the categorization (e.g. it turns out to be a bug, not just an enhancement), add the appropriate label with `--add-label` (never `--label`, which would wipe existing labels).
+4. Output the issue URL and a one-line note of what you changed.
 
 ### `view <number>`
 
@@ -360,6 +397,7 @@ If `--label <label>` is specified in the arguments, add `--label "<label>"` to f
 
 These rules keep issue quality high and prevent accidental damage to existing labels and issues:
 
+- Search for an existing issue before creating a new one, and update that issue rather than filing a duplicate — duplicate issues split discussion and double the triage burden
 - Every issue needs at least one type label — labels are the primary categorization mechanism and enable filtering and triage
 - Present the full issue (title, body, labels) for user review before creating — the user owns the final content
 - Add a comment explaining why before closing any issue — future readers need to understand the decision
