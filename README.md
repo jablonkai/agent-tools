@@ -27,7 +27,14 @@ It is designed for:
 
 ## Available Agents
 
-There are currently no custom agents in the `agents/` directory.
+Custom subagents live in `agents/` as `*.agent.md` files (Claude Code subagent format: `name`, `description`, `tools`, `model`).
+
+- `kmp-compose-dev`: Kotlin Multiplatform + Compose Multiplatform implementation and review; orchestrates the `compose-*` and `kotlin-*` skills
+- `flutter-dev`: Flutter/Dart feature work, layout fixes, routing, data, and tests; orchestrates the `flutter-*` and `dart-*` skills
+- `ios-macos-dev`: native iOS/macOS development (Swift, SwiftUI, UIKit/AppKit) — Xcode projects, SPM, concurrency, signing, and tests; uses the `xcode-project-setup` skill and `find-docs`
+- `ultra-data`: ultramarathon data domain — DUV lookups, race results and runner profiles, multi-day race data, and Garmin/Coach training data via the `duv` skill
+- `skill-smith`: maintainer agent for this repo — scaffolds and audits skills/agents to convention, syncs README/AGENTS, and runs the validator
+- `delegate-scout`: read-only research agent that fans heavy reading out to the delegate CLIs (`agy`, `kiro-cli`, `cursor-agent`, `copilot`) to keep the main context clean
 
 ## What This Repository Is For
 
@@ -53,6 +60,8 @@ The `update-all` workflow installs skills from several upstream sources, includi
 - `upstash/context7`
 
 The `claude-md` step syncs [instructions/CLAUDE.md](instructions/CLAUDE.md) to `~/.claude/CLAUDE.md`, so the global Claude instruction file is versioned in this repository. Edit it here and run `update-all claude-md` (or a full `update-all`) to roll it out.
+
+The `agents` step syncs the custom subagents in [agents/](agents/) to `~/.claude/agents/` (each `agents/<name>.agent.md` is installed as `<name>.md`, Claude Code's expected extension), so they are available globally from any project. Edit them here and run `update-all agents` (or a full `update-all`) to roll them out.
 
 To make the `update-all` script available from anywhere in your terminal:
 

@@ -39,6 +39,17 @@ ANDROID_SKILLS=(
   "verified-email"
 )
 
+# Custom Claude Code subagents to sync from this repo (agents/<name>.agent.md →
+# ~/.claude/agents/<name>.md). See do_agents.
+AGENTS=(
+  "delegate-scout"
+  "flutter-dev"
+  "ios-macos-dev"
+  "kmp-compose-dev"
+  "skill-smith"
+  "ultra-data"
+)
+
 # Maps each supported target name to its on-disk skills directory.
 agent_skills_dir() {
   case "$1" in
@@ -234,6 +245,7 @@ STEPS=(
   "pipx|C_PYTHON|pipx: upgrade all packages"
   "gh-ext|C_GITHUB|GitHub CLI extensions: upgrade all"
   "skills|C_SKILLS|Agent skills: install/update via gh skill"
+  "agents|C_SKILLS|Custom agents: sync from jablonkai/agent-tools"
   "claude-md|C_SKILLS|Global CLAUDE.md: sync from jablonkai/agent-tools"
   "cleanup|C_APPLE|Cleanup: npm/pnpm cache + Library/Caches"
   "mo-clean|C_MO|mo: clean"
@@ -505,6 +517,38 @@ do_skills() {
       run_if_changed "gh skill update $skill_name → common" "$common_dir/$skill_name" \
         gh skill update "$skill_name" --dir "$common_dir" --all
     fi
+  done
+}
+
+# Syncs the custom Claude Code subagents into ~/.claude/agents/ from the
+# agent-tools repo, where agents/<name>.agent.md is the source of truth. Each
+# agent installs as <name>.md (Claude Code's expected extension). Mirrors
+# do_claude_md: fetch to a temp file first so a failed download never clobbers
+# an existing agent file. Uses 'gh' for authenticated (private-repo) access.
+do_agents() {
+  if ! have gh; then
+    skip "custom agents" "gh (GitHub CLI) not installed"
+    return
+  fi
+
+  local dest_dir="$HOME/.claude/agents"
+  mkdir -p "$dest_dir"
+
+  sync_agent() {  # agent-name
+    local name="$1" tmp
+    tmp=$(mktemp) || return 1
+    if gh api "repos/jablonkai/agent-tools/contents/agents/${name}.agent.md" \
+         --jq '.content' | base64 -d > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
+      mv "$tmp" "$dest_dir/${name}.md"
+    else
+      rm -f "$tmp"
+      return 1
+    fi
+  }
+
+  local name
+  for name in "${AGENTS[@]}"; do
+    run "agent ${name} → ${name}.md" sync_agent "$name"
   done
 }
 

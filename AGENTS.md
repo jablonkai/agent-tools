@@ -7,6 +7,7 @@ Reusable AI tooling repository: skills, custom agents, instruction files, and pr
 | Path | Purpose |
 |------|---------|
 | `skills/<name>/SKILL.md` | Reusable skill, one directory per skill |
+| `agents/<name>.agent.md` | Custom Claude Code subagent, one file per agent |
 | `instructions/CLAUDE.md` | Global Claude instruction file; source of truth for `~/.claude/CLAUDE.md`, synced by `update-all` (`claude-md` step) |
 | `scripts/update-all.sh` | Helper script to install/update tooling globally; `update-all init` bootstraps the full toolchain on a fresh machine |
 | `.github/scripts/validate.sh` | Local validation (run before committing) |
@@ -22,6 +23,15 @@ Reusable AI tooling repository: skills, custom agents, instruction files, and pr
 - `github-issues`: create, triage, label, comment on, and manage GitHub issues
 - `markitdown`: convert PDF, Office, HTML, data, e-book, image, audio, and ZIP files (or YouTube URLs) to Markdown via Microsoft's markitdown CLI or Python API
 
+## Available Agents
+
+- `kmp-compose-dev`: Kotlin Multiplatform + Compose Multiplatform implementation and review
+- `flutter-dev`: Flutter/Dart feature work, layout fixes, routing, data, and tests
+- `ios-macos-dev`: native iOS/macOS development (Swift, SwiftUI, UIKit/AppKit), Xcode, SPM, signing, tests
+- `ultra-data`: ultramarathon data domain (DUV, race results, multi-day races, Garmin/Coach training data)
+- `skill-smith`: maintainer agent for this repo (scaffold/audit skills & agents, sync docs, validate)
+- `delegate-scout`: read-only research agent that fans heavy reading out to the delegate CLIs
+
 ## Conventions
 
 ### Skills (`skills/`)
@@ -30,6 +40,12 @@ Reusable AI tooling repository: skills, custom agents, instruction files, and pr
 - Required YAML frontmatter fields: `name`, `description`
 - Common optional fields: `category`, `risk`, `tags`, `allowed-tools`, `argument-hint`
 - Use existing skills (e.g. [github-commit-pr](skills/github-commit-pr/SKILL.md)) as a template
+
+### Agents (`agents/`)
+- Filename **must** end in `.agent.md` (e.g. `kmp-compose-dev.agent.md`)
+- Required YAML frontmatter fields: `name`, `description`
+- For Claude Code subagents also set `tools` and `model`
+- Use an existing agent (e.g. [kmp-compose-dev](agents/kmp-compose-dev.agent.md)) as a template
 
 ## Validation
 
