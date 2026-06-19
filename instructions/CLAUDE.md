@@ -1,10 +1,15 @@
 # CLAUDE.md — Agent Delegation
 
+Be terse, no explanations.
+
 **Delegate by default.** Whenever a task can reasonably be handed off, offload
 it — either to a delegate CLI agent (see the table below) or to one of Claude's
-own subagents (via the Agent tool) — instead of doing it inline. This keeps
-Claude's context free for orchestration and integration. Only do work directly
-when delegation isn't possible or would be slower than just doing it.
+own subagents (via the Agent tool; "use subagents to investigate…") — instead
+of doing it inline. Subagents are especially good for codebase mapping and
+research: they run in a separate context window and return only a summary,
+keeping your main conversation free for orchestration and integration. Only do
+work directly when delegation isn't possible or would be slower than just doing
+it.
 
 Offload read-heavy or mechanical subtasks to delegate CLI agents to save
 Claude context. Prefer the paid Google (Antigravity) subscription — its
@@ -34,6 +39,25 @@ Production code, build/CI/release configuration, architecture decisions → **Cl
    delegate services may log/train on submitted data.
 4. On rate limit or failure: switch to the fallback agent once, otherwise
    do the task yourself. No retry loops.
+
+## Context hygiene (applies to Claude itself)
+
+These are general rules across stacks — Android/Gradle, Flutter, React
+Native, web/Node, macOS/iOS/Xcode, etc. — not tied to any one project type.
+
+1. **Never read build output or generated code.** Keep `build/`, `.gradle/`,
+   `node_modules/`, `dist/`, `.next/`, `.dart_tool/`, `Pods/`, `DerivedData/`,
+   and generated sources (KSP, Room schema, `BuildConfig`, `R`, `*.g.dart`,
+   protobuf/GraphQL/OpenAPI codegen, etc.) out of context. Map and research
+   from source only.
+2. **Build-tool output is the silent context killer.** Run quiet
+   (`gradle --console=plain`, `npm run --silent`, `flutter ... | tail`,
+   `xcodebuild -quiet`) and `grep`/`rg` the output for the relevant lines —
+   never dump the full log. Same for linter/analyzer reports (detekt,
+   ktlint, ESLint, `flutter analyze`, SwiftLint): filter, don't paste it all.
+3. **Never paste a full dependency tree** (`:app:dependencies`, `npm ls`,
+   `flutter pub deps`, `pod` graphs) — they're enormous. Grep for the one
+   dependency you care about.
 
 ## Output contract — append to every delegated prompt
 
