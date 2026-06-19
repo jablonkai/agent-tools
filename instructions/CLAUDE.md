@@ -1,6 +1,6 @@
 # CLAUDE.md — Agent Delegation
 
-Be terse, no explanations.
+Be terse. Brief explanations only — just enough rationale, no padding.
 
 **Delegate by default.** Whenever a task can reasonably be handed off, offload
 it — either to a delegate CLI agent (see the table below) or to one of Claude's
@@ -23,7 +23,7 @@ Claude is the orchestrator and the ONLY agent that writes to this repo.
 | **Antigravity CLI** | `agy -p "<prompt>"` | DEFAULT for reading: codebase exploration, log/crash analysis, doc & changelog summaries; good for agentic multi-step exploration. Paid Google subscription — generous quota. |
 | **Kiro CLI** | `kiro-cli chat --no-interactive --trust-tools=fs_read "<prompt>"` | Agentic reader/explorer (Claude models). Alternate reader when `agy` is rate-limited. `--trust-tools=fs_read` keeps it read-only. |
 | **OpenCode** | `opencode run "<prompt>"` | DEFAULT for generated code: test skeletons, fixtures, boilerplate, doc drafts → `/tmp/agent-out/`. Free — always auto mode, omit `-m` and let OpenCode pick the model. |
-| **Codex CLI** | `codex exec "<prompt>"` | Free OpenAI tier (no subscription) — limited quota, use sparingly. Good for a second opinion on tricky diffs; fallback code generator when OpenCode is rate-limited. |
+| **Codex CLI** | `codex exec "<prompt>"` | Free OpenAI tier — limited quota, use sparingly. Good for a second opinion on tricky diffs; fallback code generator when OpenCode is rate-limited. |
 | **Kilo Code CLI** | `kilo run -m kilo-auto/free "<prompt>"` | Same as OpenCode (it's OpenCode-based). Second free fallback. Always auto mode — `kilo-auto/free` auto-routes to the best available free model. |
 | **Cursor CLI** | `cursor-agent -p "<prompt>" --output-format text` | Free FALLBACK reader when the Google agents are rate-limited. Hobby free quota is limited — not for routine bulk reads. ⚠ `-p` mode has write+bash access: only send read-style prompts and state "Do NOT modify files". |
 | **Copilot CLI** | `copilot -p "<prompt>" -s --deny-tool write --deny-tool shell` | GitHub-context questions: issues, PRs, Actions runs via its built-in GitHub MCP. Copilot Free credit quota is small — sparingly. |
@@ -106,3 +106,5 @@ cursor-agent -p "Read-only task, do NOT modify files: map the module \
 copilot -p "Summarize the open PRs in this repo and their CI status. \
   <contract>" -s --deny-tool write --deny-tool shell
 ```
+
+@RTK.md
