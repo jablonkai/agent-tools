@@ -995,6 +995,14 @@ do_init() {
   else
     skip "install context7 CLI (ctx7)" "npm not installed"
   fi
+  # playwright-cli — backs the repo's playwright-cli skill (browser automation).
+  # Browsers download lazily on first use; the trailing cleanup step prunes
+  # ~/.cache/ms-playwright, so don't warm them up here.
+  if have npm; then
+    ensure_cmd playwright-cli "Playwright CLI" npm install -g @playwright/cli@latest
+  else
+    skip "install Playwright CLI" "npm not installed"
+  fi
   # markitdown — required by the repo's own markitdown skill (a pipx package).
   if have pipx; then
     ensure_cmd markitdown "markitdown[all]" pipx install 'markitdown[all]'
@@ -1047,7 +1055,7 @@ ${BOLD}Bootstrap:${RESET}
                         platform, build-tools), gh, mo, the agent CLIs (claude, copilot,
                         codex, agy, cursor, opencode, kilo, kiro), rtk (+ wires
                         its hooks into Claude, Cursor, OpenCode, Codex, Copilot),
-                        gen-ai, ctx7, markitdown, Flutter (manual), and SDKMAN
+                        gen-ai, ctx7, playwright-cli, markitdown, Flutter (manual), and SDKMAN
                         (kotlintoolchain lands via the trailing sdk step). Prints
                         an auth reminder at the end for tools that need a login.
 
