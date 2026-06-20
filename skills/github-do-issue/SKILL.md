@@ -109,6 +109,7 @@ Wait for the user to approve or adjust the plan.
 Execute the approved plan:
 
 - Follow existing code conventions and patterns discovered in Step 3
+- Keep the issue comments in view while implementing — they often carry the most recent decisions, clarifications, or requirement changes that supersede the original body. Implement what the latest comment thread agreed on, not just the opening description.
 - Write clean, focused changes — only what the issue requires, no scope creep
 - If the project uses i18n, add translation keys for new user-visible strings
 - If a sub-task turns out to be more complex than planned, pause and inform the user rather than expanding scope silently
