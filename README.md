@@ -84,7 +84,7 @@ On a fresh machine, run the `init` bootstrap subcommand to install the whole too
 update-all init
 ```
 
-It idempotently installs the Xcode Command Line Tools, Homebrew, node, git, pipx, uv, the Android CLI (plus `android init` and the core Android SDK — platform-tools, emulator, a platform, and build-tools), `gh`, `mo`, the agent CLIs (`claude`, `copilot`, `codex`, `agy`, `cursor`, `opencode`, `kilo`, `kiro`), `gen-ai`, `ctx7`, `markitdown`, Flutter (manual install), and SDKMAN. Tools already present are skipped, so re-running `init` on a provisioned machine is safe. At the end it prints a reminder listing the tools that still need an interactive login (the installers don't sign you in).
+It idempotently installs the Xcode Command Line Tools, Homebrew, node, git, pipx, uv, the Android CLI (plus `android init` and the core Android SDK — platform-tools, emulator, a platform, and build-tools), `gh`, `mo`, the agent CLIs (`claude`, `copilot`, `codex`, `agy`, `cursor`, `opencode`, `kilo`, `kiro`), `gen-ai`, `ctx7`, `playwright-cli`, `markitdown`, Flutter (manual install), and SDKMAN. The trailing `sdk` step then installs and warms up the Kotlin toolchain via SDKMAN's `kotlintoolchain` candidate. Tools already present are skipped, so re-running `init` on a provisioned machine is safe. At the end it prints a reminder listing the tools that still need an interactive login (the installers don't sign you in).
 
 ## Getting Started
 
