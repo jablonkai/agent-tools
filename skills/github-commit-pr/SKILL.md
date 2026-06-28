@@ -414,6 +414,7 @@ Do NOT modify the PR title or body.
 
 These boundaries protect the user's repository and team workflow:
 
+- Never commit directly to the base branch (e.g. `main`) — always land work through the full flow: create a feature branch first, then commit → push → open a PR → watch CI to green → squash-merge → delete the branch. The base branch is shared and usually protected; committing straight to it skips review and CI, the very gates this skill exists to enforce. When pre-flight detects the current branch IS the base branch, create the feature branch (New PR flow Step 4) before staging anything.
 - Do not force-push — it rewrites shared history and can cause data loss for collaborators
 - Do not amend existing commits — create new ones instead, so the commit timeline stays transparent and reviewable
 - Do not skip pre-commit hooks (`--no-verify`) — hooks enforce project-level quality gates that exist for a reason
