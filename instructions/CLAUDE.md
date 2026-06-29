@@ -1,20 +1,18 @@
 # CLAUDE.md — Agent Delegation
 
-Be terse. Brief explanations only — just enough rationale, no padding.
+Be terse. Brief explanations only — just enough rationale, no padding. This
+applies to Claude's own output, not to subagent output contracts.
 
-**Delegate by default.** Whenever a task can reasonably be handed off, offload
-it — either to a delegate CLI agent (see the table below) or to one of Claude's
-own subagents (via the Agent tool; "use subagents to investigate…") — instead
-of doing it inline. Subagents are especially good for codebase mapping and
-research: they run in a separate context window and return only a summary,
-keeping your main conversation free for orchestration and integration. Only do
-work directly when delegation isn't possible or would be slower than just doing
-it.
+**Activate Serena first.** On every coding task, bring up Serena before anything
+else and rely on its symbolic tools — this is mandatory, not a nice-to-have.
 
-Offload read-heavy or mechanical subtasks to delegate CLI agents to save
-Claude context. Prefer the paid Google (Antigravity) subscription — its
-quota is generous; the free-tier agents (including Codex) are fallbacks.
-Claude is the orchestrator and the ONLY agent that writes to this repo.
+**Delegate by default.** Hand off read-heavy or mechanical subtasks instead of
+doing them inline — to a delegate CLI agent (table below) or a Claude subagent
+(Agent tool). Both run in a separate context and return a summary, keeping your
+main conversation free for orchestration. Subagents are especially good for
+codebase mapping and research. Only work directly when delegation isn't possible
+or would be slower. Claude is the orchestrator and the ONLY agent that writes to
+this repo.
 
 ## Agents — when to use which
 
@@ -68,43 +66,17 @@ If uncertain, say UNCERTAIN and stop.
 
 ## Examples
 
+Each agent's invocation is in the table; the patterns worth noting:
+
 ```bash
-# Exploration (Antigravity)
+# Append the output contract to read/explore prompts
 agy -p "How does feature X flow through the modules of this repo? <contract>"
 
-# Log analysis (Antigravity)
+# Pipe logs in rather than reading them into Claude's context
 tail -n 2000 build.log | agy -p "Root-cause error? Max 15 lines. <contract>"
 
-# Long-file analysis (Antigravity)
-agy -p "Summarize responsibilities and risks in this 3000-line file: \
-  <FILE>. <contract>"
-
-# Alternate reader when Antigravity is rate-limited (Kiro, read-only)
-kiro-cli chat --no-interactive --trust-tools=fs_read \
-  "Map the module dependencies of this repo. <contract>"
-
-# Test scaffolding (OpenCode, auto mode — default code generator)
-opencode run \
-  "Unit test skeleton (project's test framework) for: <FILE>" > /tmp/agent-out/foo-test
-
-# Second opinion (Codex, sparingly — free tier, limited quota)
-git diff HEAD~1 | codex exec \
-  "Review for bugs and common pitfalls (concurrency, edge cases). Max 20 lines."
-
-# Fallback scaffolding when OpenCode is rate-limited (Codex)
-codex exec "Unit test skeleton (project's test framework) for: <FILE>" \
-  > /tmp/agent-out/foo-test
-
-# Second fallback (Kilo)
-kilo run -m kilo-auto/free "Doc comments for: <FILE>" > /tmp/agent-out/doc.txt
-
-# Fallback exploration when the Google agents are rate-limited (Cursor)
-cursor-agent -p "Read-only task, do NOT modify files: map the module \
-  dependencies of this repo. <contract>" --output-format text
-
-# GitHub-context question (Copilot, sparingly — small free quota)
-copilot -p "Summarize the open PRs in this repo and their CI status. \
-  <contract>" -s --deny-tool write --deny-tool shell
+# Generated code goes to /tmp/agent-out/ for Claude to review, never inline
+opencode run "Unit test skeleton for: <FILE>" > /tmp/agent-out/foo-test
 ```
 
 @RTK.md
