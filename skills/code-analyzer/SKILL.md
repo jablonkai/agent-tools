@@ -170,10 +170,16 @@ If you find yourself writing many `low confidence / low severity` items, stop. T
 
 ### Step 6: Produce the report
 
-Save the report to `CODE_AUDIT.md` at the project root (or print inline if the user prefers). Use this structure exactly — it's a contract the user can skim quickly:
+Save the report to `CODE_AUDIT_<YYYY-MM-DD>_<HHMM>_<auditor>.md` at the project root — e.g. `CODE_AUDIT_2026-06-29_1430_claude-opus-4-8.md`. The timestamp records when the audit ran and `<auditor>` records who ran it, so repeated audits pile up side by side instead of silently overwriting the last one. Build the name from the local clock and the auditor's identity:
+
+```bash
+date +%Y-%m-%d_%H%M        # the date + time component, e.g. 2026-06-29_1430
+```
+
+For `<auditor>`, use the model id when an agent runs the audit (e.g. `claude-opus-4-8`), or the git `user.name` (slugified, lowercase, spaces → `-`) when a human does. (Or print inline if the user prefers.) Use this structure exactly — it's a contract the user can skim quickly:
 
 ```markdown
-# Code audit — <project name> — <YYYY-MM-DD>
+# Code audit — <project name> — <YYYY-MM-DD HH:MM>
 
 ## Executive summary
 <3–6 lines: scope of audit, headline counts (critical/high/medium/low), the single biggest concern, and the single highest-leverage improvement>
@@ -223,7 +229,7 @@ Keep prose tight. The user is going to triage this list — every extra paragrap
 **Interactive use**: after delivering the report, offer the user clear options. Do not start fixing things without being asked:
 
 ```
-Audit complete. Report at CODE_AUDIT.md.
+Audit complete. Report at CODE_AUDIT_<YYYY-MM-DD>_<HHMM>_<auditor>.md.
 
 Want me to:
   1. Fix specific findings — name the ids, e.g. "fix SEC-01, BUG-02, Q-03"
